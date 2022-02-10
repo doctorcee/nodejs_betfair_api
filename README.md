@@ -4,6 +4,9 @@ This project exists to provide a learning resource for people interested in deve
 tools for Betfair. Contained within the repository are simple node.js examples of how to access 
 Betfair market data via the API-NG. 
 
+Javascript is not my strongest language - the code is intended to be illustrative of how to use the API operations
+rather than pretty or well designed.
+
 #### Table of Contents
 - [License](#license)
 - [Requirements](#requirements)
@@ -18,6 +21,17 @@ information and before making use of the code.
 ## Requirements
 
 To run the scripts here, node.js will need to be installed on your system. A good starting point for information on how to install node.js can be found [here](https://nodejs.org/en/)
+
+As a minimum, the following node.js packages will need to be installed:
+
+* fs
+* https
+* url
+
+Some scripts will also require:
+
+* zlib
+* moment
 
 Users will also need to have a Betfair account and access to the Betfair API. 
 
