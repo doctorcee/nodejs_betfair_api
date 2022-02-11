@@ -196,7 +196,7 @@ module.exports = {
         options.headers = {
 			'Accept': 'application/json',
 			'X-Authentication' : session_id,
-            'X-Application': app_key
+			'X-Application': app_key
         };
 
         // Create a new https request object.
@@ -216,8 +216,8 @@ module.exports = {
                     const status = response.status;
                     const response_code = res.statusCode;
                     callback_params.status = response.status;
-					callback_params.token = response.token;
-					callback_params.error_message = response.error;
+                    callback_params.token = response.token;
+                    callback_params.error_message = response.error;
                     callback(callback_params); 
                 }
                 catch (e)
@@ -272,9 +272,9 @@ module.exports = {
             }
         }
         if (use_gzip_compression === true)
-		{
+        {
 			https_options.headers['Accept-Encoding'] = 'gzip';
-		}
+        }
         
         let response_params = {};
         response_params.error = true;
