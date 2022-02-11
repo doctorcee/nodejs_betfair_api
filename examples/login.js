@@ -1,6 +1,6 @@
 #!/usr/bin node
 "use strict"
- //------------------------------------------------------
+//------------------------------------------------------
 // IMPORTANT - PLEASE READ THE LICENSE TERMS BEFORE 
 // DECIDING IF YOU WANT TO USE THIS CODE
 //------------------------------------------------------
@@ -35,8 +35,8 @@ function run()
 //============================================================ 
 function loginCallback(login_response_params)
 {
-    // Login callback - will be called when bfapi.login receives a response
-    // from the API or encounters an error
+	// Login callback - will be called when bfapi.login receives a response
+	// from the API or encounters an error
     if (login_response_params.error === false)
     {
         console.log("Success!");    
