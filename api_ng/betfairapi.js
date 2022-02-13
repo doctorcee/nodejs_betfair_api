@@ -245,19 +245,9 @@ module.exports = {
         console.log("Keep alive called.");
     },
     
-    listMarketCatalogue : function(session_id,app_key,market_filter,use_gzip_compression,callback) {
-        // Input parameter params:
-        // 1. Valid sesssion token
-        // 2. Valid application key
-        // 3. Market filter to apply to this request
-        // 4. Flag to indicate whether to request response is gzip compressed or not.
-        // 5. Callback function that accepts object that must contain the following objects:
-        //    a. error - a boolean error flag
-        //    b. error_message - string containing error details or "OK" when no error
-        //    c. data - string containing the JSON response
-        //    d. session_id - string duplicated from the input session token value        
-        
-        let https_options = {
+    sendRequest : function(operation_name,session_id,app_key,filter,use_gzip_compression,callback)
+    {
+		let https_options = {
             hostname: 'api.betfair.com',
             port: 443,
             path: '/exchange/betting/json-rpc/v1',
@@ -282,7 +272,7 @@ module.exports = {
         response_params.data = '';
         response_params.session_id = session_id;        
         
-        let json_request = '{"jsonrpc":"2.0","method":"SportsAPING/v1.0/listMarketCatalogue", "params": ' + market_filter + ', "id": 1}';
+        let json_request = '{"jsonrpc":"2.0","method":"SportsAPING/v1.0/' + operation_name + '", "params": ' + filter + ', "id": 1}';
         
         // Create a string buffer to store the response we get back
         let response_buffer = '';
@@ -326,7 +316,7 @@ module.exports = {
 				// Socket close error handler                
                 response_params.error_message = 'ERROR SOCKET CONNECTION CLOSED!';
                 response_params.data = '';
-                callback(response_params);
+               callback(response_params);
 			});			 
         });
             
@@ -338,6 +328,37 @@ module.exports = {
             response_params.error_message = 'REQUEST ERROR: ' + e.message;
             response_params.data = '';
             callback(response_params);
-        });         
-    }
+        });    
+	},
+    
+    listMarketCatalogue : function(session_id,app_key,filter,compress,callback) {
+        // Input parameter params:
+        // 1. Valid sesssion token
+        // 2. Valid application key
+        // 3. Market filter to apply to this request
+        // 4. Flag to indicate whether to request response is gzip compressed or not.
+        // 5. Callback function that accepts object that must contain the following objects:
+        //    a. error - a boolean error flag
+        //    b. error_message - string containing error details or "OK" when no error
+        //    c. data - string containing the JSON response
+        //    d. session_id - string duplicated from the input session token value        
+        
+        module.exports.sendRequest("listMarketCatalogue",session_id,app_key,filter,compress,callback)
+    },
+    
+    listClearedOrders : function(session_id,app_key,filter,compress,callback) 
+    {
+        // Input parameter params:
+        // 1. Valid sesssion token
+        // 2. Valid application key
+        // 3. Market filter to apply to this request
+        // 4. Flag to indicate whether to request response is gzip compressed or not.
+        // 5. Callback function that accepts object that must contain the following objects:
+        //    a. error - a boolean error flag
+        //    b. error_message - string containing error details or "OK" when no error
+        //    c. data - string containing the JSON response
+        //    d. session_id - string duplicated from the input session token value        
+        
+        module.exports.sendRequest("listClearedOrders",session_id,app_key,filter,compress,callback)        
+    }   
 }
