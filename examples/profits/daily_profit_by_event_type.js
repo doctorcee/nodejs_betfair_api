@@ -7,7 +7,7 @@
 // Simple script that will log into your Betfair account
 // (using the login parameters stored in the config.js
 // file - see login.hs for details) and request profits 
-// at the market level for a specified year and event type.
+// at the market level for a specified date and event type.
 //------------------------------------------------------
 
 "use strict"
@@ -15,6 +15,8 @@
 const config = require('../../config.js');
 var bfapi = require('../../api_ng/betfairapi.js');
 
+var day = 0;
+var month = 0;
 var year = 0;
 var event_type_id = 0;
 var start_record = 0;
@@ -27,8 +29,10 @@ run();
 //============================================================ 
 function printCLIParamRequirements()
 {	
-	console.log("[1] - Event type ID.");		
-	console.log("[2] - Year for which results are required.")		
+	console.log("[1] - Event type ID.");
+	console.log("[2] - Year of date for which results are required.");
+	console.log("[3] - Month of date for which results are required.");
+	console.log("[4] - Day of date for which results are required.");
 }
 
 //============================================================ 
@@ -36,20 +40,22 @@ function run()
 {	
 	// Retrieve command line parameters
 	var comm_params = process.argv.slice(2); 	
-	if (comm_params.length != 2)
+	if (comm_params.length != 4)
 	{
 		console.log("Error - insufficient arguments supplied. Required arguments are:");
 		printCLIParamRequirements();
-		process.exit(1);
 	}
 	event_type_id = comm_params[0];
-	year = parseInt(comm_params[1]);		
-	if (year < 2019)
+	year = parseInt(comm_params[1]);
+	month = parseInt(comm_params[2]);		
+	day = parseInt(comm_params[3]);
+	month = month - 1;	
+	if (year < 2019 || month < 0 || day <= 0 || month > 11 || day > 31)
 	{
 		console.log("Error - supplied date parameters are invalid");
 		process.exit(1);
 	}
-
+	
 	// Call the bfapi module login function with the login parameters stored in config
     bfapi.login(config,loginCallback);
 }
@@ -61,8 +67,9 @@ function loginCallback(login_response_params)
     // from the API or encounters an error
     if (login_response_params.error === false)
     {
-        console.log("Login successful!");               		        	
-		requestClearedOrders(login_response_params.session_id,year);
+        console.log("Login successful!");               		
+ 
+		requestClearedOrders(login_response_params.session_id,year,month,day);
     }
     else
     {
@@ -71,12 +78,12 @@ function loginCallback(login_response_params)
 }
 
 //============================================================ 
-function requestClearedOrders (session_id,year)
+function requestClearedOrders (session_id,year,month,day)
 {	
 	// Work out end day - note that month is ZERO based index!
-	
-	let date_start = new Date(year, 0, 1, 0, 0, 1, 0);
-	let date_end = new Date(year, 11, 31, 23,59, 59, 0);
+
+	let date_start = new Date(year, month, day, 0, 0, 1, 0);
+	let date_end = new Date(year, month, day, 23,59, 59, 0);
 	
 	let json_date_start = date_start.toJSON();	
 	let json_date_end = date_end.toJSON();
@@ -164,7 +171,7 @@ function parseListClearedOrders(response_params)
 			{
 				// Response indicates more records are available so we must call again				
 				start_record += record_limit;
-				requestClearedOrders(response_params.session_id,year);
+				requestClearedOrders(response_params.session_id,year,month,day);
 			}
 			else
 			{
@@ -176,5 +183,4 @@ function parseListClearedOrders(response_params)
     {
         console.log(response_params.error_message);
     }
-	
 }

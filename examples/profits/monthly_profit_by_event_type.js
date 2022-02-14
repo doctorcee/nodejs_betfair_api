@@ -26,8 +26,33 @@ var orders_array = [];
 run();
 
 //============================================================ 
+function printCLIParamRequirements()
+{	
+	console.log("[1] - Event type ID.");
+	console.log("[2] - Year of date for which results are required.");
+	console.log("[3] - Month of date for which results are required.");
+}
+
+//============================================================ 
 function run() 
 {	
+	// Retrieve command line parameters
+	var comm_params = process.argv.slice(2); 	
+	if (comm_params.length != 3)
+	{
+		console.log("Error - insufficient arguments supplied. Required arguments are:");
+		printCLIParamRequirements();
+	}
+	event_type_id = comm_params[0];
+	year = parseInt(comm_params[1]);
+	month = parseInt(comm_params[2]);		
+	month = month - 1;
+	if (year < 2019 || month < 0 || month > 11)
+	{
+		console.log("Error - supplied date parameters are invalid");
+		process.exit(1);
+	}
+	
 	// Call the bfapi module login function with the login parameters stored in config
     bfapi.login(config,loginCallback);
 }
@@ -40,27 +65,7 @@ function loginCallback(login_response_params)
     if (login_response_params.error === false)
     {
         console.log("Login successful!");               		
-        		
-		// Retrieve command line parameters
-		var comm_params = process.argv.slice(2); 
-		if (comm_params.length != 3)
-		{
-			console.log("Error - insufficient arguments supplied. Required arguments are:");		
-			console.log("[1] - Event type ID.");
-			console.log("[2] - Year of date for which results are required.")
-			console.log("[3] - Month of date for which results are required.")			
-			process.exit(1);
-		}
-		event_type_id = comm_params[0];
-		year = parseInt(comm_params[1]);
-		month = parseInt(comm_params[2]);		
-		month = month - 1;
-		if (year < 2019 || month < 0 || month > 11)
-		{
-			console.log("Error - supplied date parameters are invalid");
-			process.exit(1);
-		}
-
+ 
 		requestClearedOrders(login_response_params.session_id,year,month);
     }
     else
