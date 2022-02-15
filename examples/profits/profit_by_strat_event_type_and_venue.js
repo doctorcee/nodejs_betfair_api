@@ -7,10 +7,12 @@
 // Simple script that will log into your Betfair account
 // (using the login parameters stored in the config.js
 // file - see login.hs for details) and request profits 
-// at the market level for a specified year and event type
-// and list of strategy reference strings
-// It will regexp match a string pattern for venue of interest
-// and display only those results that match
+// at the market level for a specified year/month/date 
+// event type and (optional) list of strategy reference
+// strings.
+// It will also (optionally) regexp match a string pattern
+// for venue (or any other string in the event description)
+// of interest and display only those results that match
 //------------------------------------------------------
 
 "use strict"
