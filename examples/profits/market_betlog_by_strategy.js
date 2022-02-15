@@ -70,10 +70,12 @@ function requestClearedOrders (session_id,mk_id,strategy)
 {		
 	
 		
-	let filter = '{"betStatus":"SETTLED","marketIds":["' + mk_id;
-	filter += '"],"customerStrategyRefs":["' + strategy + '"],"groupBy":"BET"}';
-	
-	//let filter = market_filters.createListClearedOrdersFilter(year,month,day,event_type_id,strat_refs,start_record,record_limit);
+	let filter = '{"betStatus":"SETTLED","marketIds":["' + mk_id + '"]';
+	if (strategy.length > 0)
+	{
+		filter += ',"customerStrategyRefs":["' + strategy + '"]';
+	}
+	filter += ',"groupBy":"BET"}';	
 	bfapi.listClearedOrders(session_id,
 							  config.ak,
 							  filter,
