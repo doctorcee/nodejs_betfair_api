@@ -14,6 +14,7 @@
 
 const config = require('../../config.js');
 var bfapi = require('../../api_ng/betfairapi.js');
+var market_filters = require('../../api_ng/market_filters.js');
 
 var year = 0;
 var event_type_id = 0;
@@ -73,18 +74,8 @@ function loginCallback(login_response_params)
 //============================================================ 
 function requestClearedOrders (session_id,year)
 {	
-	// Work out end day - note that month is ZERO based index!
-	
-	let date_start = new Date(year, 0, 1, 0, 0, 1, 0);
-	let date_end = new Date(year, 11, 31, 23,59, 59, 0);
-	
-	let json_date_start = date_start.toJSON();	
-	let json_date_end = date_end.toJSON();
-	
-	let filter = '{"betStatus":"SETTLED","eventTypeIds":["' + event_type_id + '"],"groupBy":"MARKET"';	
-	filter += ',"fromRecord":' + start_record + ',"recordCount":' + record_limit;
-	filter += ',"settledDateRange":{"from":"'+json_date_start+'","to":"'+json_date_end+'"},"includeItemDescription":true}';			
-			
+	let strat_array = [];
+	let filter = market_filters.createListClearedOrdersFilter(year,-1,0,event_type_id,strat_array,start_record,record_limit);	
 	bfapi.listClearedOrders(session_id,
 							  config.ak,
 							  filter,
@@ -130,7 +121,7 @@ function calculateProfitHistory()
 	}
 	console.log("Total profit across all markets: £" + cumulative_profit + " Commission paid: £" + total_commission);
 	console.log("Total bets: " + total_bets);
-	console.log("Total markets: " + total_markets);
+	console.log("Total markets: " + total_markets);	
 }
 
 //============================================================ 
@@ -151,7 +142,7 @@ function parseListClearedOrders(response_params)
             process.exit(1);
         }
         if (bfapi.validateAPIResponse(response))
-        {					
+        {								
 			let result = response.result;
 			let orders = result.clearedOrders;
 			let more_available = result.moreAvailable;

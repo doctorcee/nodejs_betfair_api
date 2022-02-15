@@ -14,6 +14,7 @@
 
 const config = require('../../config.js');
 var bfapi = require('../../api_ng/betfairapi.js');
+var market_filters = require('../../api_ng/market_filters.js');
 
 var month = 0;
 var year = 0;
@@ -77,35 +78,8 @@ function loginCallback(login_response_params)
 //============================================================ 
 function requestClearedOrders (session_id,year,month)
 {	
-	// Work out end day - note that month is ZERO based index!
-	let end_day = 31;
-	if (month === 1)
-	{
-		if (year % 4 === 0)
-		{
-			end_day = 29;
-		}
-		else
-		{
-			end_day = 28;
-		}
-	}
-	else
-	{
-		if (month === 3 || month === 5 || month === 8 || month == 10)
-		{
-			end_day = 30;
-		}
-	}
-	let date_start = new Date(year, month, 1, 0, 0, 1, 0);
-	let date_end = new Date(year, month, end_day, 23,59, 59, 0);
-	
-	let json_date_start = date_start.toJSON();	
-	let json_date_end = date_end.toJSON();
-	
-	let filter = '{"betStatus":"SETTLED","eventTypeIds":["' + event_type_id + '"],"groupBy":"MARKET"';	
-	filter += ',"fromRecord":' + start_record + ',"recordCount":' + record_limit;
-	filter += ',"settledDateRange":{"from":"'+json_date_start+'","to":"'+json_date_end+'"},"includeItemDescription":true}';			
+	let strat_array = [];
+	let filter = market_filters.createListClearedOrdersFilter(year,-1,0,event_type_id,strat_array,start_record,record_limit);	
 			
 	bfapi.listClearedOrders(session_id,
 							  config.ak,

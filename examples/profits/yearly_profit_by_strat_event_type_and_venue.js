@@ -7,7 +7,10 @@
 // Simple script that will log into your Betfair account
 // (using the login parameters stored in the config.js
 // file - see login.hs for details) and request profits 
-// at the market level for a specified date and event type.
+// at the market level for a specified year and event type
+// and list of strategy reference strings
+// It will regexp match a string pattern for venue of interest
+// and display only those results that match
 //------------------------------------------------------
 
 "use strict"
@@ -16,24 +19,24 @@ const config = require('../../config.js');
 var bfapi = require('../../api_ng/betfairapi.js');
 var market_filters = require('../../api_ng/market_filters.js');
 
-var day = 0;
-var month = 0;
+var event_filter = "";
 var year = 0;
 var event_type_id = 0;
 var start_record = 0;
 const record_limit = 1000;
 const use_compression = true;
 var orders_array = [];
+var strat_refs = [];
 
 run();
 
 //============================================================ 
 function printCLIParamRequirements()
 {	
-	console.log("[1] - Event type ID.");
-	console.log("[2] - Year of date for which results are required.");
-	console.log("[3] - Month of date for which results are required.");
-	console.log("[4] - Day of date for which results are required.");
+	console.log("[1] - Event type ID.");		
+	console.log("[2] - Year for which results are required.")	
+	console.log("[3] - Event description filter (if blank no filtering applied.)")	
+	console.log("[4] - Strategy reference strings (comma delimited string of strategy refs - if blank no strategies are requested.)")	
 }
 
 //============================================================ 
@@ -45,18 +48,19 @@ function run()
 	{
 		console.log("Error - insufficient arguments supplied. Required arguments are:");
 		printCLIParamRequirements();
+		process.exit(1);
 	}
 	event_type_id = comm_params[0];
 	year = parseInt(comm_params[1]);
-	month = parseInt(comm_params[2]);		
-	day = parseInt(comm_params[3]);
-	month = month - 1;	
-	if (year < 2019 || month < 0 || day <= 0 || month > 11 || day > 31)
+	event_filter = comm_params[2];	
+	let strat_list = comm_params[3];
+	strat_refs = strat_list.split(",");
+	if (year < 2019)
 	{
 		console.log("Error - supplied date parameters are invalid");
 		process.exit(1);
 	}
-	
+
 	// Call the bfapi module login function with the login parameters stored in config
     bfapi.login(config,loginCallback);
 }
@@ -68,9 +72,8 @@ function loginCallback(login_response_params)
     // from the API or encounters an error
     if (login_response_params.error === false)
     {
-        console.log("Login successful!");               		
- 
-		requestClearedOrders(login_response_params.session_id,year,month,day);
+        console.log("Login successful!");               		        	
+		requestClearedOrders(login_response_params.session_id,year);
     }
     else
     {
@@ -79,15 +82,14 @@ function loginCallback(login_response_params)
 }
 
 //============================================================ 
-function requestClearedOrders (session_id,year,month,day)
-{	
-	let strat_array = [];
-	let filter = market_filters.createListClearedOrdersFilter(year,month,day,event_type_id,strat_array,start_record,record_limit);		
+function requestClearedOrders (session_id,year)
+{		
+	let filter = market_filters.createListClearedOrdersFilter(year,-1,0,event_type_id,strat_refs,start_record,record_limit);
 	bfapi.listClearedOrders(session_id,
 							  config.ak,
 							  filter,
 							  use_compression,
-							  parseListClearedOrders);							  
+							  parseListClearedOrders);													
 }
 
 //============================================================ 
@@ -106,7 +108,7 @@ function calculateProfitHistory()
 		// Process each market result		
 		let marketid = order.marketId;
 		let desc = order.itemDescription;
-		let evdesc = desc.eventDesc;			
+		let evdesc = desc.eventDesc;
 		let profit = order.profit;				
 		let commission = order.commission;
 		market_profit += profit;
@@ -129,6 +131,7 @@ function calculateProfitHistory()
 	console.log("Total profit across all markets: £" + cumulative_profit + " Commission paid: £" + total_commission);
 	console.log("Total bets: " + total_bets);
 	console.log("Total markets: " + total_markets);
+	console.log(strat_refs);
 }
 
 //============================================================ 
@@ -155,14 +158,21 @@ function parseListClearedOrders(response_params)
 			let more_available = result.moreAvailable;
 		
 			for (let order of orders)
-			{		
+			{
+				let desc = order.itemDescription;
+				let evdesc = desc.eventDesc;
+				if ((event_filter !== "") && (-1 === evdesc.search(event_filter)))
+				{
+					// Ignore - no match on event filter
+					continue;
+				}
 				orders_array.push(order);
 			}
 			if (more_available === true)
 			{
 				// Response indicates more records are available so we must call again				
 				start_record += record_limit;
-				requestClearedOrders(response_params.session_id,year,month,day);
+				requestClearedOrders(response_params.session_id,year);
 			}
 			else
 			{
@@ -174,4 +184,5 @@ function parseListClearedOrders(response_params)
     {
         console.log(response_params.error_message);
     }
+	
 }
