@@ -360,5 +360,23 @@ module.exports = {
         //    d. session_id - string duplicated from the input session token value        
         
         module.exports.sendRequest("listClearedOrders",session_id,app_key,filter,compress,callback)        
-    }   
+    },
+    
+    listEventTypes : function(session_id,app_key,filter,compress,callback) 
+    {
+        // Input parameter params:
+        // 1. Valid sesssion token
+        // 2. Valid application key
+        // 3. Market filter to apply to this request
+        // 4. Flag to indicate whether to request response is gzip compressed or not.
+        // 5. Callback function that accepts object that must contain the following objects:
+        //    a. error - a boolean error flag
+        //    b. error_message - string containing error details or "OK" when no error
+        //    c. data - string containing the JSON response
+        //    d. session_id - string duplicated from the input session token value        
+        
+        module.exports.sendRequest("listEventTypes",session_id,app_key,filter,compress,callback)        
+    }      
+    
+    
 }
