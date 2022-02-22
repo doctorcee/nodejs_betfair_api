@@ -112,9 +112,9 @@ function calculateProfitHistory()
 	let total_bets = 0;
 	let total_markets = 0;	
 	let total_commission = 0.0;	
-	let market_profit = 0.0;
 	let cumulative_profit = 0.0;
 	
+	let profit_array = [];
 	for (let order of orders_array)
 	{
 		// Process each market result		
@@ -122,28 +122,28 @@ function calculateProfitHistory()
 		let desc = order.itemDescription;
 		let evdesc = desc.eventDesc;
 		let profit = order.profit;				
-		let commission = order.commission;
-		market_profit += profit;
-		let profit_string = "£" + Math.abs(profit);			
-		if (profit < 0)
-		{
-			profit_string = "-" + profit_string;
-		}
-		else
-		{
-			profit_string = " " + profit_string;
-		}
+		let commission = order.commission;		
+		
 		total_bets += order.betCount;
 		total_commission += commission;		
-		let line = "[" + order.settledDate + "]  " + profit_string + " \t(" + evdesc + "), Market " + marketid + ", Total bets = " +  order.betCount + ", commission paid £" + commission;
-		console.log(line);		
 		total_markets++;		
 		cumulative_profit += profit;
+		
+		let new_item = {};
+		new_item.SettledDate = order.settledDate;
+		new_item.Profit = profit;
+		new_item.Description = evdesc;
+		new_item.Market	= marketid;
+		new_item.Bets = order.betCount;
+		new_item.Commission = commission;
+				
+		profit_array.push(new_item);
 	}
+	console.table(profit_array);
 	console.log("Total profit across all markets: £" + cumulative_profit + " Commission paid: £" + total_commission);
 	console.log("Total bets: " + total_bets);
 	console.log("Total markets: " + total_markets);
-	console.log(strat_refs);
+	console.log("Strategy refs: " + strat_refs);
 }
 
 //============================================================ 

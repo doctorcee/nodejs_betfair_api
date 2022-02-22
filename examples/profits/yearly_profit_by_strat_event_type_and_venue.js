@@ -54,7 +54,10 @@ function run()
 	year = parseInt(comm_params[1]);
 	event_filter = comm_params[2];	
 	let strat_list = comm_params[3];
-	strat_refs = strat_list.split(",");
+	if (strat_list.length > 0)
+	{
+		strat_refs = strat_list.split(",");
+	}
 	if (year < 2019)
 	{
 		console.log("Error - supplied date parameters are invalid");
@@ -85,6 +88,7 @@ function loginCallback(login_response_params)
 function requestClearedOrders (session_id,year)
 {		
 	let filter = market_filters.createListClearedOrdersFilter(year,-1,0,event_type_id,strat_refs,start_record,record_limit);
+	console.log(filter);
 	bfapi.listClearedOrders(session_id,
 							  config.ak,
 							  filter,
@@ -95,6 +99,7 @@ function requestClearedOrders (session_id,year)
 //============================================================ 
 function calculateProfitHistory()
 {
+	
 	// Process the info in the orders_array which contains 
 	// the profits for the month
 	let total_bets = 0;
@@ -102,6 +107,8 @@ function calculateProfitHistory()
 	let total_commission = 0.0;	
 	let market_profit = 0.0;
 	let cumulative_profit = 0.0;
+	
+	let profit_array = [];
 	
 	for (let order of orders_array)
 	{
@@ -122,12 +129,23 @@ function calculateProfitHistory()
 			profit_string = " " + profit_string;
 		}
 		total_bets += order.betCount;
-		total_commission += commission;		
-		let line = "[" + order.settledDate + "]  " + profit_string + " \t(" + evdesc + "), Market " + marketid + ", Total bets = " +  order.betCount + ", commission paid £" + commission;
-		console.log(line);		
+		total_commission += commission;				
 		total_markets++;		
 		cumulative_profit += profit;
+		
+		
+		let new_item = {};
+		new_item.SettledDate = order.settledDate;
+		new_item.Profit = profit; //profit_string;
+		new_item.Description = evdesc;
+		new_item.Market	=	marketid;
+		new_item.Bets = order.betCount;
+		new_item.Commission = commission;
+				
+		profit_array.push(new_item);	
+		
 	}
+	console.table(profit_array);	
 	console.log("Total profit across all markets: £" + cumulative_profit + " Commission paid: £" + total_commission);
 	console.log("Total bets: " + total_bets);
 	console.log("Total markets: " + total_markets);
