@@ -156,7 +156,7 @@ function parseListClearedOrdersGroupedByBet(response_params)
 			let more_available = result.moreAvailable;
 		
 			const order_count = orders.length;
-			console.log("listClearedOrders response contains " + order_count + " orders.");
+			//console.log("listClearedOrders response contains " + order_count + " orders.");
 			for (let order of orders)
 			{		
 				let market_id = order.marketId;				
@@ -205,7 +205,7 @@ function parseListClearedOrdersGroupedByBet(response_params)
 					}
 					else
 					{
-						console.log("Processing next market....");
+						console.log("Processing next market (" + market_id_array[mkt_index_iterator] + ")");
 						bet_status = "SETTLED";
 					}
 				}		
