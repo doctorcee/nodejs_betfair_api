@@ -37,7 +37,7 @@ run();
 //============================================================ 
 function printCLIParamRequirements()
 {	
-	console.log("[1] - Event type ID.");		
+	console.log("[1] - Event type ID (ignored if zero)");		
 	console.log("[2] - Year for which results are required.")	
 	console.log("[3] - Month for which results are required (set to zero to get results for entire year.)")	
 	console.log("[4] - Day for which results are required (set to zero to get results for whole month or year.)")

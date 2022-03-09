@@ -19,8 +19,9 @@ const config = require('../../config.js');
 var bfapi = require('../../api_ng/betfairapi.js');
 var market_filters = require('../../api_ng/market_filters.js');
 
-var event_filter = "";
 var year = 0;
+var month = 0;
+var day = 0;
 var event_type_id = 0;
 var start_record = 0;
 const record_limit = 1000;
