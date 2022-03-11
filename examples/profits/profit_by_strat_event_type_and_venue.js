@@ -85,7 +85,7 @@ function loginCallback(login_response_params)
     if (login_response_params.error === false)
     {
         console.log("Login successful!");               		        	
-		requestClearedOrders(login_response_params.session_id,year);
+		requestClearedOrders(login_response_params.session_id);
     }
     else
     {
@@ -94,7 +94,7 @@ function loginCallback(login_response_params)
 }
 
 //============================================================ 
-function requestClearedOrders (session_id,year)
+function requestClearedOrders (session_id)
 {		
 	let filter = market_filters.createListClearedOrdersFilter(year,month,day,event_type_id,strat_refs,start_record,record_limit);
 	bfapi.listClearedOrders(session_id,
