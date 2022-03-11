@@ -165,7 +165,7 @@ function start_streaming()
 					let response = {};
 					try
 					{						
-						response = JSON.parse(this_msg);						
+						response = JSON.parse(this_msg);							
 					}
 					catch (ex)
 					{
@@ -252,13 +252,7 @@ function clearStateVars()
 //============================================================ 
 function processRCM(msg_string, json_msg, timestamp)
 {
-	if (json_msg.hasOwnProperty("ct"))
-    {
-        if ('HEARTBEAT' === json_msg.ct)
-        {                     
-            return;
-        }
-    }
+	//console.log(msg_string);
     
 	// Split data by market
 	const tnow = new Date().getTime();
@@ -281,6 +275,14 @@ function processRCM(msg_string, json_msg, timestamp)
     {
 		connection_info.clk = json_msg.initialClk;
 	}
+	
+	if (json_msg.hasOwnProperty("ct"))
+    {
+        if ('HEARTBEAT' === json_msg.ct)
+        {                     
+            return;
+        }
+    }
     
 	const tsstring = timestamp + "|" + publish_time + "|";
 	if (json_msg.hasOwnProperty("rc"))
@@ -296,8 +298,16 @@ function processRCM(msg_string, json_msg, timestamp)
 					let outfile = config.logbasegps + ((mkt.mid).replace(/\./g,'')) + '.txt';
 					file_utils.appendStringToFile(outfile,(tsstring + JSON.stringify(mkt)));					
 				}
+				else
+				{
+					console.log("Message missing mid")
+				}
 			}
 		}
+	}
+	else
+	{
+		console.log("Message missing rc field")
 	}
 }
 
@@ -344,6 +354,15 @@ function monitor()
 		clearTimeout(monitor_timer);
 		process.exit(1);
 	}
+	
+	// Check for lockup before doing anything else
+	const lag = msepoch - connection_info.last_heartbeat;
+	if (lag > 2 * config.gpsheartbeat)
+	{
+		let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update. Closing connection...";
+		log_utils.logMessage(errorlog, msg, true);													
+	}
+	
 	if (false === connection_info.connected)
 	{
 		if (false === connection_info.connecting)
@@ -378,9 +397,8 @@ function monitor()
 				}
 				else
 				{
-					// Check connection for lockup
-					let lag = msepoch - connection_info.last_heartbeat;
-					if (lag > 2*connection_info.heartbeat)
+					// Check connection for lockup					
+					if (lag > 2 * config.gpsheartbeat)
 					{
 						let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update. Closing connection...";
 						log_utils.logMessage(errorlog, msg, true);											
