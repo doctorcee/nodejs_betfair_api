@@ -54,8 +54,8 @@ var market_list = [];
 
 var logged_in = false;
 
-const datestring = date_utils.todaysDateAsString(); 
 
+var datestring = date_utils.todaysDateAsString(); 
 
 if (!fs.existsSync(config.logbasegps))
 {
@@ -63,7 +63,7 @@ if (!fs.existsSync(config.logbasegps))
     process.exit(1);
 }
 
-const errorlog = config.logbasegps + datestring + '_error_log.txt'
+var errorlog = config.logbasegps + datestring + '_error_log.txt'
 
 
 run();
@@ -337,6 +337,12 @@ function authenticate()
 //============================================================ 
 function monitor() 
 {
+	let nowstring = date_utils.todaysDateAsString(); 
+	if (nowstring != datestring)
+	{
+		datestring = nowstring;
+		errorlog = config.logbasegps + datestring + '_error_log.txt'
+	}
 	++monitor_count;
 	let ts = new Date();
 	let msepoch = ts.getTime();
