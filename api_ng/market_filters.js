@@ -82,7 +82,7 @@ module.exports = {
         return filter;                
     },
     
-    createListClearedOrdersFilterBySide : function (year,month,day,event_type_id,strategy_ref_array,start_record,record_limit,side)
+    createListClearedOrdersFilter : function (year,month,day,event_type_id,strategy_ref_array,start_record,record_limit,side)
     {
 		// Month is supplied as a ZERO based integer so JANUARY == 0 etc.
 		let filter_string = '';
@@ -138,8 +138,7 @@ module.exports = {
 				}
 			}			
 			let filter = {};
-			filter["betStatus"] = "SETTLED";
-			filter["groupBy"] = "SIDE";			
+			filter["betStatus"] = "SETTLED";				
 			if (event_type_id > 0)
 			{
 				let evtype_arr = [];
@@ -157,92 +156,17 @@ module.exports = {
 			sdr["to"] = to_date;
 			filter["settledDateRange"] = sdr;
 			filter["includeItemDescription"] = true;
-			if (side === "LAY" || side === "BACK")
+			if (side === undefined) 
 			{
-				filter["side"] = side;
+				filter["groupBy"] = "MARKET";	
 			}
+			else
+			{				
+				filter["side"] = side;
+				filter["groupBy"] = "SIDE";	
+			}			
 			filter_string = JSON.stringify(filter);
 		}
 		return filter_string;
-	},
-    
-    createListClearedOrdersFilter : function (year,month,day,event_type_id,strategy_ref_array,start_record,record_limit)
-    {
-		// Month is supplied as a ZERO based integer so JANUARY == 0 etc.
-		let filter = '';
-		let from_date = {};
-		let to_date = {};
-		if (year > 0)
-		{
-			// If day === 0 we create a filter for the whole month
-			if (month < 0)
-			{
-				// Pull entire year of results
-				let date_start = new Date(year, 0, 1, 0, 0, 1, 0);
-				let date_end = new Date(year, 11, 31, 23,59, 59, 0);
-				to_date = date_end.toJSON();
-				from_date = date_start.toJSON();
-			}
-			else
-			{
-				if (day === 0)
-				{								
-					// Work out end day - note that month is ZERO based index!
-					let end_day = 31;
-					if (month === 1)
-					{
-						if (year % 4 === 0)
-						{
-							end_day = 29;
-						}
-						else
-						{
-							end_day = 28;
-						}
-					}
-					else
-					{
-						if (month === 3 || month === 5 || month === 8 || month == 10)
-						{
-							end_day = 30;					
-						}
-					}
-					let date_start = new Date(year, month, 1, 0, 0, 1, 0);
-					let date_end = new Date(year, month, end_day, 23,59, 59, 0);
-					to_date = date_end.toJSON();
-					from_date = date_start.toJSON();
-				}
-				else
-				{
-					// Specific date
-					let date_start = new Date(year, month, day, 0, 0, 1, 0);
-					let date_end = new Date(year, month, day, 23,59, 59, 0);
-					to_date = date_end.toJSON();
-					from_date = date_start.toJSON();
-				}
-			}
-		
-			filter = '{"betStatus":"SETTLED","groupBy":"MARKET"';
-			if (event_type_id > 0)
-			{
-				filter += (',"eventTypeIds":["' + event_type_id + '"]');
-			}			
-			if (strategy_ref_array.length > 0)
-			{
-				filter += (',"customerStrategyRefs":[' );
-				for (let i = 0; i < strategy_ref_array.length; ++i)
-				{
-					if (i > 0)
-					{
-						filter += ',';
-					}
-					filter += ('"' + strategy_ref_array[i] + '"');					
-				}
-				filter += (']');
-			}			
-			filter += (',"fromRecord":' + start_record + ',"recordCount":' + record_limit);
-			filter += (',"settledDateRange":{"from":"'+from_date+'","to":"'+to_date+'"},"includeItemDescription":true}');
-		}
-		return filter;
 	}
 }

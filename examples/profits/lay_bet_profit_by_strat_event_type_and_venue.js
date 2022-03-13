@@ -96,7 +96,7 @@ function loginCallback(login_response_params)
 //============================================================ 
 function requestClearedOrders (session_id)
 {		
-	let filter = market_filters.createListClearedOrdersFilterBySide(year,month,day,event_type_id,strat_refs,start_record,record_limit,"LAY");
+	let filter = market_filters.createListClearedOrdersFilter(year,month,day,event_type_id,strat_refs,start_record,record_limit,"LAY");
 	bfapi.listClearedOrders(session_id,
 							  config.ak,
 							  filter,
@@ -120,7 +120,8 @@ function calculateProfitHistory()
 		let marketid = order.marketId;
 		let desc = order.itemDescription;
 		let evdesc = desc.eventDesc;
-		let profit = order.profit;						
+		let profit = order.profit;	
+		let runner_id = order.selectionId;					
 		
 		total_bets += order.betCount;		
 		total_markets++;		
@@ -131,7 +132,8 @@ function calculateProfitHistory()
 		new_item.Profit = profit;
 		new_item.Description = evdesc;
 		new_item.Market	= marketid;
-		new_item.Bets = order.betCount;		
+		new_item.Bets = order.betCount;	
+		new_item.Runner = runner_id;	
 				
 		profit_array.push(new_item);
 	}
