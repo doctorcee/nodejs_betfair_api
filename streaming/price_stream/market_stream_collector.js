@@ -14,7 +14,7 @@ var bfapi = require('../../api_ng/betfairapi.js');
 var file_utils = require('../../utils/file_utilities'); 
 var log_utils = require("../../utils/logging_utilities.js");
 var date_utils = require('../../utils/date_utilities');
-const config = require('../../config.js');
+const config = require('./stream_config.js');
 
 
 var sigint_abort_flag = false;
