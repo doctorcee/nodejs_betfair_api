@@ -179,6 +179,7 @@ module.exports = {
         let callback_params = {};
         callback_params.status = '';
         callback_params.token = '';
+        callback_params.error = true;
         callback_params.error_message = '';
 
         // Create URL object from the logon endpoint using the URL package
@@ -216,6 +217,10 @@ module.exports = {
                     const status = response.status;
                     const response_code = res.statusCode;
                     callback_params.status = response.status;
+                    if (callback_params.status === "SUCCESS")
+                    {
+						callback_params.error = false;
+					}
                     callback_params.token = response.token;
                     callback_params.error_message = response.error;
                     callback(callback_params); 

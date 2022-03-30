@@ -41,7 +41,8 @@ let connection_info = {
   last_auth_req_id : 0,
   streaming_request_id_counter : 1,
   sid : '',
-  last_heartbeat : 0
+  last_heartbeat : 0,
+  last_keepalive : 0
 };
 
 var lagged_message_count = 0;
@@ -50,7 +51,7 @@ var monitor_count = 0;
 var current_message_string = "";
 
 var monitor_timer = {};
-var market_list = [];
+let current_markets = new Map();
 
 var logged_in = false;
 
@@ -63,8 +64,6 @@ if (!fs.existsSync(config.logbaseprices))
 }
 
 var errorlog = config.logbaseprices + datestring + '_error_log.txt'
-
-var current_markets = new Map();
 
 run()
 
@@ -100,12 +99,35 @@ function loginCallback(login_response_params)
     // from the API or encounters an error
     if (login_response_params.error === false)
     {
+		let ts = new Date();
+		let msepoch = ts.getTime();	
 		connection_info.sid = login_response_params.session_id;
+		connection_info.last_keepalive = msepoch;
 		monitor_timer = setInterval(monitor,config.pricedatarate); 
     }
     else
     {
         log_utils.logMessage(errorlog, login_response_params.error_message, true);
+    }                                                                                                                    
+}
+
+//============================================================ 
+function keepAliveCallback(response_params)
+{
+    // Login callback - will be called when bfapi.login receives a response
+    // from the API or encounters an error
+    if (response_params.error === false)
+    {
+		let ts = new Date();
+		let msepoch = ts.getTime();	
+		connection_info.sid = response_params.session_id;
+		connection_info.last_keepalive = msepoch;		
+		log_utils.logMessage(errorlog, "Successful keepAlive request made.", true);
+    }
+    else
+    {
+		log_utils.logMessage(errorlog, "KeepAlive call status = " + response_params.status, true);
+        log_utils.logMessage(errorlog, response_params.error_message, true);
     }                                                                                                                    
 }
 
@@ -145,6 +167,9 @@ function subscribe()
 //============================================================ 
 function monitor() 
 {
+	// TODO: listMarketCatalogue calls
+	// TODO: keepAlive calls
+
 	let nowstring = date_utils.todaysDateAsString(); 
 	if (nowstring != datestring)
 	{
@@ -155,6 +180,10 @@ function monitor()
 	let ts = new Date();
 	let msepoch = ts.getTime();
 	
+	if (msepoch - connection_info.last_keepalive > 7200000)	
+	{
+		bfapi.keepAlive(connection_info.sid,config.ak,keepAliveCallback);
+	}
 	if (monitor_count % 1000 === 0)
 	{
 		var lm2 = "*** LATENCY UPDATE: Received " + lagged_message_count + " messages with receipt lag greater than 100ms since program started.";
@@ -575,44 +604,31 @@ function processMCM(msg_string, json_msg, timestamp)
 				if (mkt.hasOwnProperty("id"))
 				{					
 					let marketid = mkt.id;
+					if (false == current_markets.has(marketid))
+					{								
+						let new_market = {};
+						new_market.id = marketid;
+						const outfile = config.logbaseprices + (marketid.replace(/\./g,'')) + '.txt';
+						new_market.streamLog = outfile;						
+						new_market.lastStreamUpdate = timestamp;
+						new_market.lastLMCatCall = 0;
+						current_markets.set(marketid, new_market);						
+					}
+					current_markets.get(marketid).lastStreamUpdate = timestamp;											
+					file_utils.appendStringToFile(current_markets.get(marketid).streamLog,(tsstring + JSON.stringify(mkt)));					
 					
-					
-					// TODO:
-					// Look for marketid in our market list
-					// If not present, add it and create outfile as a member
-					
-					let outfile = config.logbaseprices + (marketid.replace(/\./g,'')) + '.txt';
-					file_utils.appendStringToFile(outfile,(tsstring + JSON.stringify(mkt)));					
-					
-					// TODO: listMarketCatalogue calls
-					// TODO: keepAlive calls
-					
-					
-					
-					
-					// OLD CODE
-					
-					/*
-					if (required_market_id_list.has(mkt.id))
+					if (mkt.hasOwnProperty("marketDefinition"))
 					{
-						let tt = (mkt.id).replace(/\./g,'');
-						tt += ".txt";
-						let outfile = logfile_directory + tt;					
-						file_utils.appendStringToFile(outfile,(tsstring + JSON.stringify(mkt)));
-						
-						if (mkt.hasOwnProperty("marketDefinition"))
+						if (mkt.marketDefinition.hasOwnProperty("status"))
 						{
-							if (mkt.marketDefinition.hasOwnProperty("status"))
-							{
-								if (mkt.marketDefinition.status === "CLOSED")
-								{
-									closed_market_id_list.add(mkt.id);
-									required_market_id_list.delete(mkt.id);
-								}
+							if (mkt.marketDefinition.status === "CLOSED")
+							{								
+								let msg = ("Market ID " + marketid + " is now closed.");
+								log_utils.logMessage(errorlog, msg, true);
+								current_markets.delete(marketid);
 							}
 						}
-					}
-					*/				
+					}																								
 				}
 				else
 				{
