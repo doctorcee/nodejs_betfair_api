@@ -42,7 +42,8 @@ let connection_info = {
   streaming_request_id_counter : 1,
   sid : '',
   last_heartbeat : 0,
-  last_keepalive : 0
+  last_keepalive : 0,
+  last_lmc_update : 0
 };
 
 var lagged_message_count = 0;
@@ -52,6 +53,7 @@ var current_message_string = "";
 
 var monitor_timer = {};
 let current_markets = new Map();
+let lmc_update_list = new Set();
 
 var logged_in = false;
 
@@ -103,6 +105,7 @@ function loginCallback(login_response_params)
 		let msepoch = ts.getTime();	
 		connection_info.sid = login_response_params.session_id;
 		connection_info.last_keepalive = msepoch;
+		connection_info.last_lmc_update = msepoch;
 		monitor_timer = setInterval(monitor,config.pricedatarate); 
     }
     else
@@ -120,7 +123,7 @@ function keepAliveCallback(response_params)
     {
 		let ts = new Date();
 		let msepoch = ts.getTime();	
-		connection_info.sid = response_params.session_id;
+		connection_info.sid = response_params.token;
 		connection_info.last_keepalive = msepoch;		
 		log_utils.logMessage(errorlog, "Successful keepAlive request made.", true);
     }
@@ -164,12 +167,61 @@ function subscribe()
 }
 
 
+
+//============================================================ 
+function parseListMarketCatResponse(response_params) 
+{
+	// Callback for when listMarketCatalogue response is received
+	// Input parameter response_params contains the following data:
+	//    1. response_params.error - a boolean error flag
+	//    2. response_params.error_message - string containing error details or "OK" when no error
+	//    3. response_params.data - string containing the JSON response
+	//    4. response_params.session_id - string storing session token value
+	let ts = new Date();
+	let msepoch = ts.getTime();	
+	const tsstring = msepoch + "|MARKETCATALOG|";
+    if (response_params.error === false)
+    {   
+        let response = {};
+        try
+        {
+            response = JSON.parse(response_params.data);
+        }
+        catch (ex)
+        {
+            console.error("Error parsing JSON response packet: " + ex.message);
+            console.error("Offending packet content: " + data);
+            process.exit(1);
+        }
+        if (bfapi.validateAPIResponse(response))
+        {
+			let result = response.result;
+			let market_array_length = result.length;		
+			for (let i = 0; i < market_array_length; i++) 
+			{				
+				const mid = result[i].marketId;				
+				if (current_markets.has(mid))
+				{								
+					current_markets.get(mid).lastStreamUpdate = msepoch;
+					current_markets.get(mid).needsLMCUpdate = false;										
+					if (lmc_update_list.has(mid))
+					{
+						lmc_update_list.delete(mid);						
+					}					
+					file_utils.appendStringToFile(current_markets.get(mid).streamLog,(tsstring + JSON.stringify(result[i])));	
+				}																	
+			}					
+		}
+	}
+    else
+    {
+        console.log(response_params.error_message);
+    }    
+}
+
 //============================================================ 
 function monitor() 
-{
-	// TODO: listMarketCatalogue calls
-	// TODO: keepAlive calls
-
+{	
 	let nowstring = date_utils.todaysDateAsString(); 
 	if (nowstring != datestring)
 	{
@@ -184,6 +236,7 @@ function monitor()
 	{
 		bfapi.keepAlive(connection_info.sid,config.ak,keepAliveCallback);
 	}
+
 	if (monitor_count % 1000 === 0)
 	{
 		var lm2 = "*** LATENCY UPDATE: Received " + lagged_message_count + " messages with receipt lag greater than 100ms since program started.";
@@ -197,7 +250,40 @@ function monitor()
 		clearTimeout(monitor_timer);
 		process.exit(1);
 	}
-	
+
+	// Check for LMC updates required every 10 seconds
+	if (msepoch - connection_info.last_lmc_update > 10000)
+	{
+		if (lmc_update_list.size > 0)
+		{
+			let mkupdate_list = [];
+			for (let item of lmc_update_list.values()) 
+			{
+				mkupdate_list.push(item);
+				if (mkupdate_list.length >= 50)
+				{
+					break;
+				}
+			}											
+			let request = {};
+			let filter = {};
+			filter["marketIds"] = mkupdate_list;			
+			for (let i = 0; i < mkupdate_list.length; ++i)
+			{
+				lmc_update_list.delete(mkupdate_list[i]);
+			}
+			request["filter"] = filter;
+			request["maxResults"] = 100;
+			
+			request["marketProjection"] = ["MARKET_DESCRIPTION","RUNNER_METADATA","MARKET_START_TIME","EVENT","COMPETITION","EVENT_TYPE"];
+			request["sort"] = "FIRST_TO_START";       			
+			const request_string = JSON.stringify(request);
+			log_utils.logMessage(errorlog, request_string, true);													
+			bfapi.listMarketCatalogue(connection_info.sid,config.ak,request_string,true,parseListMarketCatResponse);
+		}
+		connection_info.last_lmc_update = msepoch;
+	}
+		
 	// Check for lockup before doing anything else
 	const lag = msepoch - connection_info.last_heartbeat;
 	if (lag > 2 * config.gpsheartbeat)
@@ -466,99 +552,6 @@ function start_streaming()
 }
 
 
-
-
-
-
-
-
-/*
-//============================================================ 
-function parseListMarketCatResponse(response_params) 
-{
-	// Callback for when listMarketCatalogue response is received
-	// Input parameter response_params contains the following data:
-	//    1. response_params.error - a boolean error flag
-	//    2. response_params.error_message - string containing error details or "OK" when no error
-	//    3. response_params.data - string containing the JSON response
-	//    4. response_params.session_id - string storing session token value
-    if (response_params.error === false)
-    {   
-        let response = {};
-        try
-        {
-            response = JSON.parse(response_params.data);
-        }
-        catch (ex)
-        {
-            console.error("Error parsing JSON response packet: " + ex.message);
-            console.error("Offending packet content: " + data);
-            process.exit(1);
-        }
-        if (bfapi.validateAPIResponse(response))
-        {
-			let result = response.result;
-			let market_array_length = result.length;
-			let todays_races = [];
-			let todays_races_with_runners = [];		
-			
-			for (let i = 0; i < market_array_length; i++) 
-			{
-				let market = {};
-				market.id = result[i].marketId;
-				market.marketName = result[i].event.name + ' ' + result[i].marketName;
-				let starttime = new Date(result[i].marketStartTime);
-				let tm = '';
-				let vhour = starttime.getUTCHours();
-				if (vhour < 10)
-				{
-					tm += ('0' + vhour + ':');
-				}
-				else
-				{
-					tm += (vhour + ':');
-				}
-				let vmin = starttime.getUTCMinutes();
-				if (vmin < 10)
-				{
-					tm += ('0' + vmin);
-				}
-				else
-				{
-					tm += vmin;
-				}
-				
-				market.startTime = tm
-				market.type = result[i].description.marketType;	
-				market.numSelections = result[i].runners.length;			
-				let market_string = (market.startTime + ' - ' + market.marketName + ', ID = ' + market.id);	
-				todays_races.push(market_string);
-				todays_races_with_runners.push(market_string);
-				console.log(market_string);
-				for (let jk = 0; jk < market.numSelections; jk++)
-				{
-					let selection = {};
-					selection.id = result[i].runners[jk].selectionId;
-					selection.runnerName = result[i].runners[jk].runnerName;
-					let runner_string = ("\t" + selection.runnerName + ' = ' + selection.id);
-					todays_races_with_runners.push(runner_string);
-				}	
-				
-			}
-			for (let k = 0; k < todays_races_with_runners.length; ++k)
-			{
-				console.log(todays_races_with_runners[k]);				
-			}			
-		}
-	}
-    else
-    {
-        console.log(response_params.error_message);
-    }    
-}
-*/
-
-
 //============================================================ 
 function processMCM(msg_string, json_msg, timestamp)
 {
@@ -602,17 +595,19 @@ function processMCM(msg_string, json_msg, timestamp)
 			{
 				let mkt = json_msg.mc[i];
 				if (mkt.hasOwnProperty("id"))
-				{					
+				{				
+					// TODO: STORE MARKET VERSION FOR USE BY LISTMARKETCAT MONITORS	
 					let marketid = mkt.id;
 					if (false == current_markets.has(marketid))
 					{								
 						let new_market = {};
 						new_market.id = marketid;
 						const outfile = config.logbaseprices + (marketid.replace(/\./g,'')) + '.txt';
-						new_market.streamLog = outfile;						
-						new_market.lastStreamUpdate = timestamp;
-						new_market.lastLMCatCall = 0;
-						current_markets.set(marketid, new_market);						
+						new_market.streamLog = outfile;												
+						new_market.needsLMCUpdate = true;
+						new_market.marketVersion = 0;
+						current_markets.set(marketid, new_market);	
+						lmc_update_list.add(marketid);					
 					}
 					current_markets.get(marketid).lastStreamUpdate = timestamp;											
 					file_utils.appendStringToFile(current_markets.get(marketid).streamLog,(tsstring + JSON.stringify(mkt)));					
@@ -628,6 +623,19 @@ function processMCM(msg_string, json_msg, timestamp)
 								current_markets.delete(marketid);
 							}
 						}
+						if (mkt.marketDefinition.hasOwnProperty("version"))
+						{
+							if (current_markets.has(marketid))
+							{
+								const newmv = mkt.marketDefinition.version;
+								if (newmv != current_markets.get(marketid).marketVersion)
+								{
+									current_markets.get(marketid).marketVersion = newmv;
+									lmc_update_list.add(marketid);
+									current_markets.get(marketid).needsLMCUpdate = true;
+								}
+							}
+						}						
 					}																								
 				}
 				else

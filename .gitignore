@@ -1,3 +1,5 @@
 config.js
+stream_config.js
+*_old.js
 personal/
 *.bk
