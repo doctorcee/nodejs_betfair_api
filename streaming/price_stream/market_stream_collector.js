@@ -606,7 +606,7 @@ function processMCM(msg_string, json_msg, timestamp)
 	}
 	if (json_msg.hasOwnProperty("clk"))
     {
-		connection_info.clk = json_msg.initialClk;
+		connection_info.clk = json_msg.clk;
 	}
 	
 	if (json_msg.hasOwnProperty("ct"))
