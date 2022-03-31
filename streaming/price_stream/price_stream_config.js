@@ -1,6 +1,5 @@
 let config = {
-  priceStreamEndpoint : 'stream-api.betfair.com',
-  priceStreamLoggingBase : './',
+  priceStreamEndpoint : 'stream-api.betfair.com',  
   priceStreamMonitorRate : 500,
   priceStreamHeartbeat : 2000,
   priceLadderLevels : 10,  

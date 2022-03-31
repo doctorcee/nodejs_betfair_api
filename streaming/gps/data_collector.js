@@ -15,7 +15,7 @@ var file_utils = require('../../utils/file_utilities');
 var log_utils = require("../../utils/logging_utilities.js");
 var date_utils = require('../../utils/date_utilities');
 const config = require('../../config.js');
-
+const gps_stream_config = require('./gps_config.js');
 
 var sigint_abort_flag = false;
 
@@ -57,13 +57,13 @@ var logged_in = false;
 
 var datestring = date_utils.todaysDateAsString(); 
 
-if (!fs.existsSync(config.logbasegps))
+if (!fs.existsSync(config.gpsStreamLoggingBase))
 {
-    console.log('ERROR: Directory ' + config.logbasegps + ' does not exist. Terminating program.');
+    console.log('ERROR: Directory ' + config.gpsStreamLoggingBase + ' does not exist. Terminating program.');
     process.exit(1);
 }
 
-var errorlog = config.logbasegps + datestring + '_error_log.txt'
+var errorlog = config.gpsStreamLoggingBase + datestring + '_error_log.txt'
 
 
 run();
@@ -88,7 +88,7 @@ function loginCallback(login_response_params)
     if (login_response_params.error === false)
     {
 		connection_info.sid = login_response_params.session_id;
-		monitor_timer = setInterval(monitor,config.gpsrate); 
+		monitor_timer = setInterval(monitor,gps_stream_config.gpsStreamMonitorRate); 
     }
     else
     {
@@ -133,7 +133,7 @@ function start_streaming()
 	}
 
 	var options = {
-		host: config.gpsendpoint,
+		host: gps_stream_config.gpsStreamEndpoint,
 		port: 443
 	}
 
@@ -143,7 +143,7 @@ function start_streaming()
 		connection_info.connected = true;		
 		connection_info.connecting = false;
 		
-		let msg = ("Connected to " + config.gpsendpoint);
+		let msg = ("Connected to " + gps_stream_config.gpsStreamEndpoint);
 		log_utils.logMessage(errorlog, msg, true);
 	});
 	
@@ -295,7 +295,7 @@ function processRCM(msg_string, json_msg, timestamp)
 				let mkt = json_msg.rc[i];
 				if (mkt.hasOwnProperty("mid"))
 				{					
-					let outfile = config.logbasegps + ((mkt.mid).replace(/\./g,'')) + '.txt';
+					let outfile = config.gpsStreamLoggingBase + ((mkt.mid).replace(/\./g,'')) + '.txt';
 					file_utils.appendStringToFile(outfile,(tsstring + JSON.stringify(mkt)));					
 				}
 				else
@@ -316,7 +316,7 @@ function subscribe()
 {	
 	log_utils.logMessage(errorlog, "Subscribing....", true);	
 	let gps_filter = '{"op":"raceSubscription","id":' + (++connection_info.streaming_request_id_counter);
-	gps_filter += ',"heartbeatMs":' + config.gpsheartbeat;
+	gps_filter += ',"heartbeatMs":' + gps_stream_config.gpsStreamHeartbeat;
 	gps_filter += '}\r\n';
 	tls_client.write(gps_filter);	
 	connection_info.subscribing = true;
@@ -341,7 +341,7 @@ function monitor()
 	if (nowstring != datestring)
 	{
 		datestring = nowstring;
-		errorlog = config.logbasegps + datestring + '_error_log.txt'
+		errorlog = config.gpsStreamLoggingBase + datestring + '_error_log.txt'
 	}
 	++monitor_count;
 	let ts = new Date();
@@ -363,7 +363,7 @@ function monitor()
 	
 	// Check for lockup before doing anything else
 	const lag = msepoch - connection_info.last_heartbeat;
-	if (lag > 2 * config.gpsheartbeat)
+	if (lag > 2 * gps_stream_config.gpsStreamHeartbeat)
 	{
 		let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update. Closing connection...";
 		log_utils.logMessage(errorlog, msg, true);													
@@ -404,7 +404,7 @@ function monitor()
 				else
 				{
 					// Check connection for lockup					
-					if (lag > 2 * config.gpsheartbeat)
+					if (lag > 2 * gps_stream_config.gpsStreamHeartbeat)
 					{
 						let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update. Closing connection...";
 						log_utils.logMessage(errorlog, msg, true);											

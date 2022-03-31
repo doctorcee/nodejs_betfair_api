@@ -61,13 +61,13 @@ var logged_in = false;
 
 var datestring = date_utils.todaysDateAsString(); 
 
-if (!fs.existsSync(price_stream_config.priceStreamLoggingBase))
+if (!fs.existsSync(config.priceStreamLoggingBase))
 {
-    console.log('ERROR: Directory ' + price_stream_config.priceStreamLoggingBase + ' does not exist. Terminating program.');
+    console.log('ERROR: Directory ' + config.priceStreamLoggingBase + ' does not exist. Terminating program.');
     process.exit(1);
 }
 
-var errorlog = price_stream_config.priceStreamLoggingBase + datestring + '_error_log.txt'
+var errorlog = config.priceStreamLoggingBase + datestring + '_error_log.txt'
 
 run()
 
@@ -258,7 +258,7 @@ function monitor()
 	if (nowstring != datestring)
 	{
 		datestring = nowstring;
-		errorlog = price_stream_config.priceStreamLoggingBase + datestring + '_error_log.txt'
+		errorlog = config.priceStreamLoggingBase + datestring + '_error_log.txt'
 	}
 	++monitor_count;
 	let ts = new Date();
@@ -634,7 +634,7 @@ function processMCM(msg_string, json_msg, timestamp)
 					{								
 						let new_market = {};
 						new_market.id = marketid;
-						const outfile = price_stream_config.priceStreamLoggingBase + (marketid.replace(/\./g,'')) + '.txt';
+						const outfile = config.priceStreamLoggingBase + (marketid.replace(/\./g,'')) + '.txt';
 						new_market.streamLog = outfile;												
 						new_market.needsLMCUpdate = true;
 						new_market.marketVersion = 0;
