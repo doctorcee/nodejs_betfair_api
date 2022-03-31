@@ -14,7 +14,8 @@ var bfapi = require('../../api_ng/betfairapi.js');
 var file_utils = require('../../utils/file_utilities'); 
 var log_utils = require("../../utils/logging_utilities.js");
 var date_utils = require('../../utils/date_utilities');
-const config = require('./stream_config.js');
+const config = require('../../config.js');
+const price_stream_config = require('./price_stream_config.js');
 
 
 var sigint_abort_flag = false;
@@ -37,6 +38,7 @@ let connection_info = {
   authenticated : false,
   authenticating : false,
   max_connections_reached : false,
+  resub_needed : false,
   connections_available : -1,
   last_auth_req_id : 0,
   streaming_request_id_counter : 1,
@@ -59,13 +61,13 @@ var logged_in = false;
 
 var datestring = date_utils.todaysDateAsString(); 
 
-if (!fs.existsSync(config.logbaseprices))
+if (!fs.existsSync(price_stream_config.priceStreamLoggingBase))
 {
-    console.log('ERROR: Directory ' + config.logbaseprices + ' does not exist. Terminating program.');
+    console.log('ERROR: Directory ' + price_stream_config.priceStreamLoggingBase + ' does not exist. Terminating program.');
     process.exit(1);
 }
 
-var errorlog = config.logbaseprices + datestring + '_error_log.txt'
+var errorlog = price_stream_config.priceStreamLoggingBase + datestring + '_error_log.txt'
 
 run()
 
@@ -106,7 +108,7 @@ function loginCallback(login_response_params)
 		connection_info.sid = login_response_params.session_id;
 		connection_info.last_keepalive = msepoch;
 		connection_info.last_lmc_update = msepoch;
-		monitor_timer = setInterval(monitor,config.pricedatarate); 
+		monitor_timer = setInterval(monitor,price_stream_config.priceStreamMonitorRate); 
     }
     else
     {
@@ -149,23 +151,53 @@ function authenticate()
 //============================================================ 
 function subscribe()
 {
-	// Subscribe to price stream based on settings in config file
-	log_utils.logMessage(errorlog, "Subscribing....", true);	
-	let filter = '{"op":"marketSubscription","id":' + (++connection_info.streaming_request_id_counter);
-	filter += ',"heartbeatMs":' + config.priceheartbeat;
+	var resub = false;
+	let id_counter = connection_info.streaming_request_id_counter;
+	if (true === connection_info.resub_needed)
+	{
+		if (connection_info.initial_clk.length > 0 && connection_info.clk.length > 0)
+		{
+			// resub
+			resub = true;
+		}
+	}
+	if (false === resub)
+	{
+		// Use new ID for a clean subscription
+		++id_counter;
+	}
 	
-	// Market filter
-	filter += (',"marketFilter":{"marketTypes":[' + config.pricemarkettypes + '],"countryCodes":[' + config.pricecountries + '],');
-	filter += ('"eventTypeIds":[' + config.priceeventtypeids  + ']}');
-	// End of market filter
 	
-	// Data filter
-	filter += (',"marketDataFilter":{"ladderLevels":' + config.priceladderlevels + ',"fields":');
-	filter += '[' + config.pricestreamfields + ']}}\r\n';
-	tls_client.write(filter);
+	let market_filter = {
+		"marketTypes":price_stream_config.marketTypeArray,
+		"countryCodes":price_stream_config.countryCodeArray,
+		"eventTypeIds":price_stream_config.eventTypeIDArray
+	};
+	let market_data_filter = {
+		"ladderLevels": price_stream_config.priceLadderLevels,
+		"fields":price_stream_config.streamFieldsArray		
+	};
+	let filter = {
+		"op":"marketSubscription",
+		"id":id_counter,
+		"heartbeatMs":price_stream_config.priceStreamHeartbeat,
+		"marketFilter":market_filter,
+		"marketDataFilter":market_data_filter
+	};
+
+	if (false === resub)
+	{		
+		log_utils.logMessage(errorlog, "Subscribing....", true);	
+	}
+	else
+	{
+		log_utils.logMessage(errorlog, "Re-subscribing....", true);			
+		filter["initialClk"] = connection_info.initial_clk;
+		filter["clk"] = connection_info.clk;		
+	}
+	tls_client.write(JSON.stringify(filter) + '\r\n');
 	connection_info.subscribing = true;
 }
-
 
 
 //============================================================ 
@@ -226,7 +258,7 @@ function monitor()
 	if (nowstring != datestring)
 	{
 		datestring = nowstring;
-		errorlog = config.logbasegps + datestring + '_error_log.txt'
+		errorlog = price_stream_config.priceStreamLoggingBase + datestring + '_error_log.txt'
 	}
 	++monitor_count;
 	let ts = new Date();
@@ -277,8 +309,7 @@ function monitor()
 			
 			request["marketProjection"] = ["MARKET_DESCRIPTION","RUNNER_METADATA","MARKET_START_TIME","EVENT","COMPETITION","EVENT_TYPE"];
 			request["sort"] = "FIRST_TO_START";       			
-			const request_string = JSON.stringify(request);
-			log_utils.logMessage(errorlog, request_string, true);													
+			const request_string = JSON.stringify(request);			
 			bfapi.listMarketCatalogue(connection_info.sid,config.ak,request_string,true,parseListMarketCatResponse);
 		}
 		connection_info.last_lmc_update = msepoch;
@@ -286,9 +317,9 @@ function monitor()
 		
 	// Check for lockup before doing anything else
 	const lag = msepoch - connection_info.last_heartbeat;
-	if (lag > 2 * config.gpsheartbeat)
+	if (lag > price_stream_config.priceStreamHeartbeat)
 	{
-		let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update. Closing connection...";
+		let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update.";
 		log_utils.logMessage(errorlog, msg, true);													
 	}
 	
@@ -327,7 +358,7 @@ function monitor()
 				else
 				{
 					// Check connection for lockup					
-					if (lag > 2 * config.gpsheartbeat)
+					if (lag > 2 * price_stream_config.priceStreamHeartbeat)
 					{
 						let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update. Closing connection...";
 						log_utils.logMessage(errorlog, msg, true);											
@@ -449,7 +480,7 @@ function start_streaming()
 	}
 
 	var options = {
-		host: config.pricedataendpoint,
+		host: price_stream_config.priceStreamEndpoint,
 		port: 443
 	}
 
@@ -459,7 +490,7 @@ function start_streaming()
 		connection_info.connected = true;		
 		connection_info.connecting = false;
 		
-		let msg = ("Connected to " + config.gpsendpoint);
+		let msg = ("Connected to " + price_stream_config.priceStreamEndpoint);
 		log_utils.logMessage(errorlog, msg, true);
 	});
 	
@@ -543,6 +574,7 @@ function start_streaming()
 		let msg = ("TLS connection closed.");
 		log_utils.logMessage(errorlog, msg, true);
 		clearStateVars();		
+		connection_info.resub_needed = true;
 	});
 
 	tls_client.on('error', function(err) {
@@ -602,7 +634,7 @@ function processMCM(msg_string, json_msg, timestamp)
 					{								
 						let new_market = {};
 						new_market.id = marketid;
-						const outfile = config.logbaseprices + (marketid.replace(/\./g,'')) + '.txt';
+						const outfile = price_stream_config.priceStreamLoggingBase + (marketid.replace(/\./g,'')) + '.txt';
 						new_market.streamLog = outfile;												
 						new_market.needsLMCUpdate = true;
 						new_market.marketVersion = 0;
