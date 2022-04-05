@@ -127,12 +127,12 @@ function keepAliveCallback(response_params)
 		let msepoch = ts.getTime();	
 		connection_info.sid = response_params.token;
 		connection_info.last_keepalive = msepoch;		
-		log_utils.logMessage(errorlog, "Successful keepAlive request made.", true);
+		log_utils.logMessage(errorlog, "Successful keepAlive request made.",false);
     }
     else
     {
-		log_utils.logMessage(errorlog, "KeepAlive call status = " + response_params.status, true);
-        log_utils.logMessage(errorlog, response_params.error_message, true);
+		log_utils.logMessage(errorlog, "KeepAlive call status = " + response_params.status, false);
+        log_utils.logMessage(errorlog, response_params.error_message, false);
     }                                                                                                                    
 }
 
@@ -143,7 +143,7 @@ function authenticate()
 	let auth_msg = '{"op": "authentication", "appKey": "' + config.ak;
 	auth_msg += '", "session": "' + connection_info.sid + '","id":' + (++connection_info.streaming_request_id_counter) + '}\r\n';
 	connection_info.last_auth_req_id = connection_info.streaming_request_id_counter;	
-	log_utils.logMessage(errorlog, "Authenticating....", true);				
+	log_utils.logMessage(errorlog, "Authenticating....", false);				
 	connection_info.authenticating = true;
 	tls_client.write(auth_msg);	
 }
@@ -187,7 +187,7 @@ function subscribe()
 
 	if (false === resub)
 	{		
-		log_utils.logMessage(errorlog, "Subscribing....", true);	
+		log_utils.logMessage(errorlog, "Subscribing....", false);	
 	}
 	else
 	{
@@ -221,9 +221,8 @@ function parseListMarketCatResponse(response_params)
         }
         catch (ex)
         {
-            console.error("Error parsing JSON response packet: " + ex.message);
-            console.error("Offending packet content: " + data);
-            process.exit(1);
+            let msg = ("JSON parsing error for listMarketCatalogue response packet: " + ex.message);
+            log_utils.logMessage(errorlog, msg, true);                        
         }
         if (bfapi.validateAPIResponse(response))
         {
@@ -264,7 +263,7 @@ function monitor()
 	let ts = new Date();
 	let msepoch = ts.getTime();
 	
-	if (msepoch - connection_info.last_keepalive > 7200000)	
+	if (msepoch - connection_info.last_keepalive > 14400000)	
 	{
 		bfapi.keepAlive(connection_info.sid,config.ak,keepAliveCallback);
 	}
@@ -272,7 +271,7 @@ function monitor()
 	if (monitor_count % 1000 === 0)
 	{
 		var lm2 = "*** LATENCY UPDATE: Received " + lagged_message_count + " messages with receipt lag greater than 100ms since program started.";
-		log_utils.logMessage(errorlog, lm2, true);
+		log_utils.logMessage(errorlog, lm2, false);
 	}
 	
 	if (sigint_abort_flag === true)
@@ -320,7 +319,7 @@ function monitor()
 	if (lag > price_stream_config.priceStreamHeartbeat)
 	{
 		let msg = "*** DATA WARNING: " + lag + " milliseconds have elsapsed since receiving last stream update.";
-		log_utils.logMessage(errorlog, msg, true);													
+		log_utils.logMessage(errorlog, msg, false);													
 	}
 	
 	if (false === connection_info.connected)
@@ -343,7 +342,7 @@ function monitor()
 				else
 				{
 					let msg = "Authentication pending....";
-					log_utils.logMessage(errorlog, msg, true);									
+					log_utils.logMessage(errorlog, msg, false);									
 				}			
 			}
 			else
@@ -399,13 +398,13 @@ function processStatusMessage(json_response)
 					// Clear the max connections flag.
 					connection_info.max_connections_reached = false;
 					let msg = ("Successful authentication");
-					log_utils.logMessage(errorlog, msg, true);
+					log_utils.logMessage(errorlog, msg, false);
 					
 					if (json_response.hasOwnProperty("connectionsAvailable"))
 					{
 						connection_info.connections_available = parseInt(json_response.connectionsAvailable);
 						msg = ("Authentication response indicates there are " + connection_info.connections_available + " available connections.");
-						log_utils.logMessage(errorlog, msg, true);	
+						log_utils.logMessage(errorlog, msg, false);	
 					}
 					else
 					{
@@ -420,7 +419,7 @@ function processStatusMessage(json_response)
 				connection_info.subscribing = false;
 				connection_info.subscribed = true;
 				let msg = ("Successful subscription");
-				log_utils.logMessage(errorlog, msg, true);
+				log_utils.logMessage(errorlog, msg, false);
 			}
 		}
 	}
@@ -450,17 +449,17 @@ function start_streaming()
 	if (connection_info.stream_connected === true)
 	{
 		let msg = "Reconnection attempt aborted: stream_connected flag is TRUE.";
-		log_utils.logMessage(errorlog, msg, true);
+		log_utils.logMessage(errorlog, msg, false);
 	}
 	if (connection_info.connecting === true)
 	{
 		let msg = "Reconnection attempt aborted: connecting flag is TRUE.";
-		log_utils.logMessage(errorlog, msg, true);
+		log_utils.logMessage(errorlog, msg, false);
 	}
 	if (connection_info.connected === true)
 	{
 		let msg = "Reconnection attempt aborted: connected flag is TRUE.";
-		log_utils.logMessage(errorlog, msg, true);
+		log_utils.logMessage(errorlog, msg, false);
 	}
 	if (connection_info.max_connections_reached)
 	{
@@ -468,7 +467,7 @@ function start_streaming()
 		if (tt < next_allowed_reconnection)
 		{
 			let msg = ("Delaying reconnection: Max connection limit has been reached.");
-			log_utils.logMessage(errorlog, msg, true);	
+			log_utils.logMessage(errorlog, msg, false);	
 			return;
 		}
 	}
@@ -491,7 +490,7 @@ function start_streaming()
 		connection_info.connecting = false;
 		
 		let msg = ("Connected to " + price_stream_config.priceStreamEndpoint);
-		log_utils.logMessage(errorlog, msg, true);
+		log_utils.logMessage(errorlog, msg, false);
 	});
 	
 	tls_client.on('data', function(data) {
@@ -530,7 +529,7 @@ function start_streaming()
 							let msg = ("Error parsing JSON response packet : " + ex.message);
 							log_utils.logMessage(errorlog, msg, true);												
 							msg = "Offending packet content: " + this_msg;
-							log_utils.logMessage(errorlog, msg, true);					
+							log_utils.logMessage(errorlog, msg, false);					
 						}				
 						// Carry on with the next message				
 						continue;							
@@ -540,12 +539,12 @@ function start_streaming()
 					{										
 						// CONNECTION MESSAGE																
 						let msg = ("Connection message received: " + this_msg);
-						log_utils.logMessage(errorlog, msg, true);
+						log_utils.logMessage(errorlog, msg, false);
 						if (response.connectionId != null) 	
 						{
 							connection_info.connection_id = response.connectionId;
 							msg = ("Connection ID = " + connection_info.connection_id);
-							log_utils.logMessage(errorlog, msg, true);							
+							log_utils.logMessage(errorlog, msg, false);							
 							connection_info.stream_connected = true;
 						}			
 						else
@@ -556,7 +555,7 @@ function start_streaming()
 					else if ("status" === optype)
 					{
 						let msg = ("Status message received: " + this_msg);
-						log_utils.logMessage(errorlog, msg, true);				
+						log_utils.logMessage(errorlog, msg, false);				
 						processStatusMessage(response);
 					}					
 					else if ("mcm" === optype)
@@ -572,14 +571,14 @@ function start_streaming()
 
 	tls_client.on('close', function() {
 		let msg = ("TLS connection closed.");
-		log_utils.logMessage(errorlog, msg, true);
+		log_utils.logMessage(errorlog, msg, false);
 		clearStateVars();		
 		connection_info.resub_needed = true;
 	});
 
 	tls_client.on('error', function(err) {
 		let msg = ("TLS client error: " + err);
-		log_utils.logMessage(errorlog, msg, true);
+		log_utils.logMessage(errorlog, msg, false);
 	});		
 }
 
@@ -651,7 +650,7 @@ function processMCM(msg_string, json_msg, timestamp)
 							if (mkt.marketDefinition.status === "CLOSED")
 							{								
 								let msg = ("Market ID " + marketid + " is now closed.");
-								log_utils.logMessage(errorlog, msg, true);
+								log_utils.logMessage(errorlog, msg, false);
 								current_markets.delete(marketid);
 							}
 						}

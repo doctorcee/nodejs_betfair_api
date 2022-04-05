@@ -130,8 +130,7 @@ function processFile(value)
 					console.log("File " + value + " has not been processed (destination file already exists)");
 				}
 				else
-				{
-					fs.mkdirSync('/tmp/a/apple', { recursive: true });
+				{					
 					if (fs.existsSync(outpath) === false)
 					{
 						fs.mkdirSync(outpath, { recursive: true });
