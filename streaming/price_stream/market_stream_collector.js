@@ -23,8 +23,10 @@ var sigint_abort_flag = false;
 // Connection variables
 var tls_client = {};
 
+const closed_market_check_interval_ms = 60000;
 var next_allowed_reconnection = new Date().getTime();
-
+var next_closed_market_check = new Date().getTime();
+next_closed_market_check += closed_market_check_interval_ms;
 
 let connection_info = {
   connection_id : '',
@@ -56,6 +58,8 @@ var current_message_string = "";
 var monitor_timer = {};
 let current_markets = new Map();
 let lmc_update_list = new Set();
+
+let closed_market_list = new Set();
 
 var logged_in = false;
 
@@ -93,6 +97,17 @@ function clearStateVars()
 function run() 
 {
 	// Call the bfapi module login function with the login parameters stored in config
+	// Create closed file target directory in case it does not exist
+	if (fs.existsSync(config.closedMarketDestinationDirectory) === false)
+	{
+		fs.mkdirSync(config.closedMarketDestinationDirectory, { recursive: true });
+	}
+	if (fs.existsSync(config.closedMarketDestinationDirectory) == false)
+	{
+		logMessage(errorlog, "Error - unable to create closed market file directory " + config.closedMarketDestinationDirectory, true);
+		process.exit(1);
+	}
+	
     bfapi.login(config,loginCallback);
 }
 
@@ -267,6 +282,7 @@ function monitor()
 	{
 		bfapi.keepAlive(connection_info.sid,config.ak,keepAliveCallback);
 	}
+	
 
 	if (monitor_count % 1000 === 0)
 	{
@@ -312,6 +328,39 @@ function monitor()
 			bfapi.listMarketCatalogue(connection_info.sid,config.ak,request_string,true,parseListMarketCatResponse);
 		}
 		connection_info.last_lmc_update = msepoch;
+	}
+	if (msepoch > next_closed_market_check)
+	{
+		// Copy markets that have been closed for more than 30 minutes to the closed market folder
+		for (let mid of closed_market_list.values()) 
+		{
+			if (current_markets.has(mid))
+			{
+				const closed_ts = current_markets.get(mid).closedTimestamp;
+				if (closed_ts > 0)
+				{
+					let msg = ("Market ID " + mid + " is now closed.");
+					log_utils.logMessage(errorlog, msg, true);	
+				}
+				if (msepoch - closed_ts > 10000)
+				{
+					// Async copy the file to target directory					
+					const sourcefile = current_markets.get(mid).streamLog;
+					const destfile = config.closedMarketDestinationDirectory + '/' + (mid.replace(/\./g,'')) + '.txt';
+					let msg = "Copying " + sourcefile + " to " + destfile;
+					log_utils.logMessage(errorlog, msg, true);										
+					fs.copyFile(sourcefile,destfile, (err) => {												
+						if (err) {
+							console.log("File copy error: ", err);
+						}
+					});
+					current_markets.delete(mid);
+					
+				}
+			}			
+		}
+		
+		next_closed_market_check += closed_market_check_interval_ms;
 	}
 		
 	// Check for lockup before doing anything else
@@ -637,6 +686,8 @@ function processMCM(msg_string, json_msg, timestamp)
 						new_market.streamLog = outfile;												
 						new_market.needsLMCUpdate = true;
 						new_market.marketVersion = 0;
+						new_market.marketStatus = "UNKNOWN";
+						new_market.closedTimestamp = 0;
 						current_markets.set(marketid, new_market);	
 						lmc_update_list.add(marketid);					
 					}
@@ -647,23 +698,40 @@ function processMCM(msg_string, json_msg, timestamp)
 					{
 						if (mkt.marketDefinition.hasOwnProperty("status"))
 						{
+							const mstat = mkt.marketDefinition.status;
+							if (current_markets.has(marketid))
+							{
+								if (mstat === "CLOSED")
+								{
+									current_markets.get(marketid).closedTimestamp = tnow;
+									closed_market_list.add(marketid);
+								}
+								current_markets.get(marketid).status = mstat;
+							}
+							/*
+							current_markets.get(marketid).marketVersion = newstat;
 							if (mkt.marketDefinition.status === "CLOSED")
 							{								
 								let msg = ("Market ID " + marketid + " is now closed.");
-								log_utils.logMessage(errorlog, msg, false);
+								log_utils.logMessage(errorlog, msg, false);								
 								current_markets.delete(marketid);
 							}
+							*/
 						}
 						if (mkt.marketDefinition.hasOwnProperty("version"))
 						{
 							if (current_markets.has(marketid))
 							{
-								const newmv = mkt.marketDefinition.version;
-								if (newmv != current_markets.get(marketid).marketVersion)
+								// Only perform LMC if market is NOT closed
+								if (current_markets.get(marketid).status !== "CLOSED")
 								{
-									current_markets.get(marketid).marketVersion = newmv;
-									lmc_update_list.add(marketid);
-									current_markets.get(marketid).needsLMCUpdate = true;
+									const newmv = mkt.marketDefinition.version;
+									if (newmv != current_markets.get(marketid).marketVersion)
+									{
+										current_markets.get(marketid).marketVersion = newmv;
+										lmc_update_list.add(marketid);
+										current_markets.get(marketid).needsLMCUpdate = true;
+									}
 								}
 							}
 						}						
