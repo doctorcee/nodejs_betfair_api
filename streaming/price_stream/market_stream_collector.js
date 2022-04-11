@@ -340,7 +340,7 @@ function monitor()
 				if (closed_ts > 0)
 				{
 					let msg = ("Market ID " + mid + " is now closed.");
-					log_utils.logMessage(errorlog, msg, true);	
+					log_utils.logMessage(errorlog, msg, false);	
 				}
 				if (msepoch - closed_ts > 10000)
 				{
@@ -348,7 +348,7 @@ function monitor()
 					const sourcefile = current_markets.get(mid).streamLog;
 					const destfile = config.closedMarketDestinationDirectory + '/' + (mid.replace(/\./g,'')) + '.txt';
 					let msg = "Copying " + sourcefile + " to " + destfile;
-					log_utils.logMessage(errorlog, msg, true);										
+					log_utils.logMessage(errorlog, msg, false);										
 					fs.copyFile(sourcefile,destfile, (err) => {												
 						if (err) {
 							console.log("File copy error: ", err);
