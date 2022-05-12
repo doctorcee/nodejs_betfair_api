@@ -137,7 +137,7 @@ function processFile(value)
 					}
 					if (fs.existsSync(outpath))
 					{
-						fs.copyFileSync(value,outfile);
+						fs.renameSync(value,outfile);
 					}
 					else
 					{
