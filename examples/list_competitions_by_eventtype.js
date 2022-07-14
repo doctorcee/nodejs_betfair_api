@@ -1,68 +1,57 @@
 #!/usr/bin node
 //------------------------------------------------------
-// IMPORTANT - PLEASE READ THE LICENSE TERMS BEFORE 
+// IMPORTANT - PLEASE READ THE LICENSE TERMS BEFORE
 // USING THIS CODE
 //------------------------------------------------------
 // Description
 // Simple script that will log into your Betfair account
 // (using the login parameters stored in the config.js
-// file - see login.hs for details) and request a list 
+// file - see login.hs for details) and request a list
 // of competition ID for the required event type.
 //------------------------------------------------------
-
 "use strict"
-
 const config = require('../config.js');
 var bfapi = require('../api_ng/betfairapi.js');
 var market_filters = require('../api_ng/market_filters.js');
-
 var event_type_id = 0;
-
 run();
-
-//============================================================ 
+//============================================================
 function printCLIParamRequirements()
-{	
-	console.log("[1] - Event type ID.");			
+{
+	console.log("[1] - Event type ID.");
 }
-
-//============================================================ 
-function run() 
-{	
+//============================================================
+function run()
+{
 	// Retrieve command line parameters
-	var comm_params = process.argv.slice(2); 	
+	var comm_params = process.argv.slice(2);
 	if (comm_params.length != 1)
 	{
 		console.log("Error - insufficient arguments supplied. Required arguments are:");
 		printCLIParamRequirements();
 		process.exit(1);
 	}
-	event_type_id = comm_params[0];	
-	
+	event_type_id = comm_params[0];
 	// Call the bfapi module login function with the login parameters stored in config
     bfapi.login(config,loginCallback);
 }
-
-//============================================================ 
+//============================================================
 function loginCallback(login_response_params)
 {
     // Login callback - will be called when bfapi.login receives a response
     // from the API or encounters an error
     if (login_response_params.error === false)
     {
-        console.log("Login successful!");        		  
-        
-        // Create a market filter               
+        console.log("Login successful!");
+        // Create a market filter
         let evtypes = [event_type_id]
         let evids = []
         let countries = []
         let comps = []
         let mkt_types = []
-        
-        const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)                       
-        
+        const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)
         let parameters = {}
-        parameters['filter'] = mkfilter                       
+        parameters['filter'] = mkfilter
 		const use_compression = true;
         bfapi.listCompetitions(login_response_params.session_id,
 							   config.ak,
@@ -73,15 +62,14 @@ function loginCallback(login_response_params)
     else
     {
         console.log(login_response_params.error_message);
-    }                                                                                                                    
+    }
 }
-
-//============================================================ 
+//============================================================
 function parseListCompetitionsResponse(response_params)
 {
 	// Callback for when listCompetitions response is received
     if (response_params.error === false)
-    {   
+    {
         let response = {};
         try
         {
@@ -94,8 +82,8 @@ function parseListCompetitionsResponse(response_params)
             process.exit(1);
         }
         if (bfapi.validateAPIResponse(response))
-        {				
-			console.log("Available competitions for event type " + event_type_id + ":");							
+        {
+			console.log("Available competitions for event type " + event_type_id + ":");
 			let competitionlist = response.result;
 			if (competitionlist.length > 0)
 			{
@@ -107,10 +95,10 @@ function parseListCompetitionsResponse(response_params)
 					new_comp.Region = comp.competitionRegion;
 					new_comp.ID = parseInt(comp.competition.id);
 					new_comp.marketCount = comp.marketCount;
-					comp_array.push(new_comp);				
+					comp_array.push(new_comp);
 				}
 				// Use console.table for nicer output
-				console.table(comp_array);	
+				console.table(comp_array);
 			}
 			else
 			{
@@ -121,6 +109,5 @@ function parseListCompetitionsResponse(response_params)
 	else
     {
         console.log(response_params.error_message);
-    }	
+    }
 }
-
