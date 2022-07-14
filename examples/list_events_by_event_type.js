@@ -7,13 +7,14 @@
 // Simple script that will log into your Betfair account
 // (using the login parameters stored in the config.js
 // file - see login.hs for details) and request a list 
-// of competition ID for the required event type.
+// of events for the required event type ID.
 //------------------------------------------------------
 
 "use strict"
 
 const config = require('../config.js');
 var bfapi = require('../api_ng/betfairapi.js');
+var market_filters = require('../api_ng/market_filters.js');
 
 var event_type_id = 0;
 
@@ -49,13 +50,24 @@ function loginCallback(login_response_params)
     // Create the filter for listEvents operation
     if (login_response_params.error === false)
     {
-		//let filters = '{"filter":{"eventTypeIds":["1"],"marketBettingTypes":["ODDS"]}}';			
-        console.log("Login successful!");        		        
-        const filter = '{"filter":{"eventTypeIds":["' + event_type_id + '"]}}';
+		
+        console.log("Login successful!");        		                
+        
+        // Create a market filter               
+        let evtypes = [event_type_id]
+        let evids = []
+        let countries = []
+        let comps = []
+        let mkt_types = [] // "marketBettingTypes":["ODDS"]
+        const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)                       
+        
+        let parameters = {}
+        parameters['filter'] = mkfilter                       	
+     
 		const use_compression = true;
         bfapi.listEvents(login_response_params.session_id,
 						 config.ak,
-						 filter,
+						 JSON.stringify(parameters),
 						 use_compression,
 						 parseListEventsResponse);
     }
