@@ -22,22 +22,22 @@ run()
 //============================================================
 function printCLIParamRequirements()
 {
-	console.log("[1] - Event type ID.")
+    console.log("[1] - Event type ID.")
 }
 
 //============================================================
 function run()
 {
-	// Retrieve command line parameters
-	var comm_params = process.argv.slice(2);
-	if (comm_params.length != 1)
-	{
-		console.log("Error - insufficient arguments supplied. Required arguments are:");
-		printCLIParamRequirements();
-		process.exit(1);
-	}
-	event_type_id = comm_params[0];
-	// Call the bfapi module login function with the login parameters stored in config
+    // Retrieve command line parameters
+    var comm_params = process.argv.slice(2);
+    if (comm_params.length != 1)
+    {
+        console.log("Error - insufficient arguments supplied. Required arguments are:");
+        printCLIParamRequirements();
+        process.exit(1);
+    }
+    event_type_id = comm_params[0];
+    // Call the bfapi module login function with the login parameters stored in config
     bfapi.login(config,loginCallback);
 }
 
@@ -59,13 +59,13 @@ function loginCallback(login_response_params)
         const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)
         let parameters = {}
         parameters['filter'] = mkfilter
-		const use_compression = true
-		
+        const use_compression = true
+        
         bfapi.listCompetitions(login_response_params.session_id,
-							   config.ak,
-							   JSON.stringify(parameters),
-							   use_compression,
-							   parseListCompetitionsResponse)
+                               config.ak,
+                               JSON.stringify(parameters),
+                               use_compression,
+                               parseListCompetitionsResponse)
     }
     else
     {
@@ -76,7 +76,7 @@ function loginCallback(login_response_params)
 //============================================================
 function parseListCompetitionsResponse(response_params)
 {
-	// Callback for when listCompetitions response is received
+    // Callback for when listCompetitions response is received
     if (response_params.error === false)
     {
         let response = {};
@@ -92,30 +92,30 @@ function parseListCompetitionsResponse(response_params)
         }
         if (bfapi.validateAPIResponse(response))
         {
-			console.log("Available competitions for event type " + event_type_id + ":");
-			let competitionlist = response.result;
-			if (competitionlist.length > 0)
-			{
-				let comp_array = [];
-				for (let comp of competitionlist)
-				{
-					let new_comp = {};
-					new_comp.Competition = comp.competition.name;
-					new_comp.Region = comp.competitionRegion;
-					new_comp.ID = parseInt(comp.competition.id);
-					new_comp.marketCount = comp.marketCount;
-					comp_array.push(new_comp);
-				}
-				// Use console.table for nicer output
-				console.table(comp_array);
-			}
-			else
-			{
-				console.log("There are no competitions for this event type.");
-			}
-		}
-	}
-	else
+            console.log("Available competitions for event type " + event_type_id + ":");
+            let competitionlist = response.result;
+            if (competitionlist.length > 0)
+            {
+                let comp_array = [];
+                for (let comp of competitionlist)
+                {
+                    let new_comp = {};
+                    new_comp.Competition = comp.competition.name;
+                    new_comp.Region = comp.competitionRegion;
+                    new_comp.ID = parseInt(comp.competition.id);
+                    new_comp.marketCount = comp.marketCount;
+                    comp_array.push(new_comp);
+                }
+                // Use console.table for nicer output
+                console.table(comp_array);
+            }
+            else
+            {
+                console.log("There are no competitions for this event type.");
+            }
+        }
+    }
+    else
     {
         console.log(response_params.error_message);
     }
