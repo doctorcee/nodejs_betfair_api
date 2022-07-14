@@ -18,20 +18,20 @@ run();
 //============================================================
 function printCLIParamRequirements()
 {
-	console.log("[1] - Event ID.");
+    console.log("[1] - Event ID.");
 }
 //============================================================
 function run()
 {
-	// Retrieve command line parameters
-	var comm_params = process.argv.slice(2);
-	if (comm_params.length != 1)
-	{
-		console.log("Error - insufficient arguments supplied. Required arguments are:");
-		printCLIParamRequirements();
-		process.exit(1);
-	}
-	event_id = comm_params[0];
+    // Retrieve command line parameters
+    var comm_params = process.argv.slice(2);
+    if (comm_params.length != 1)
+    {
+        console.log("Error - insufficient arguments supplied. Required arguments are:");
+        printCLIParamRequirements();
+        process.exit(1);
+    }
+    event_id = comm_params[0];
     bfapi.login(config,loginCallback);
 }
 //============================================================
@@ -52,12 +52,12 @@ function loginCallback(login_response_params)
         const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)
         let parameters = {}
         parameters['filter'] = mkfilter
-		const use_compression = true;
+        const use_compression = true;
         bfapi.listEvents(login_response_params.session_id,
-						 config.ak,
-						 JSON.stringify(parameters),
-						 use_compression,
-						 parseListEventsResponse);
+                         config.ak,
+                         JSON.stringify(parameters),
+                         use_compression,
+                         parseListEventsResponse);
     }
     else
     {
@@ -67,7 +67,7 @@ function loginCallback(login_response_params)
 //============================================================
 function parseListEventsResponse(response_params)
 {
-	// Callback for when listEvents response is received
+    // Callback for when listEvents response is received
     if (response_params.error === false)
     {
         let response = {};
@@ -83,30 +83,30 @@ function parseListEventsResponse(response_params)
         }
         if (bfapi.validateAPIResponse(response))
         {
-			console.log("Available events for event ID " + event_id + ":");
-			let eventlist = response.result;
-			if (eventlist.length > 0)
-			{
-				let event_array = [];
-				for (let evt of eventlist)
-				{
-					let new_event = {};
-					new_event.Name = evt.event.name;
-					new_event.Country = evt.event.countryCode;
-					new_event.ID = parseInt(evt.event.id);
-					new_event.marketCount = evt.marketCount;
-					event_array.push(new_event);
-				}
-				// Use console.table for nicer output
-				console.table(event_array);
-			}
-			else
-			{
-				console.log("There are no events for this event type.");
-			}
-		}
-	}
-	else
+            console.log("Available events for event ID " + event_id + ":");
+            let eventlist = response.result;
+            if (eventlist.length > 0)
+            {
+                let event_array = [];
+                for (let evt of eventlist)
+                {
+                    let new_event = {};
+                    new_event.Name = evt.event.name;
+                    new_event.Country = evt.event.countryCode;
+                    new_event.ID = parseInt(evt.event.id);
+                    new_event.marketCount = evt.marketCount;
+                    event_array.push(new_event);
+                }
+                // Use console.table for nicer output
+                console.table(event_array);
+            }
+            else
+            {
+                console.log("There are no events for this event type.");
+            }
+        }
+    }
+    else
     {
         console.log(response_params.error_message);
     }
