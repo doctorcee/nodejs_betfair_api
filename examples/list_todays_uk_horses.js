@@ -31,7 +31,7 @@ function loginCallback(login_response_params)
     {
         console.log("Login successful!");
         
-		// Create a market filter
+        // Create a market filter
         let evtypes = [7]
         let evids = []
         let countries = ["GB","IE"]
@@ -55,13 +55,13 @@ function loginCallback(login_response_params)
         parameters['marketProjection'] = market_projection
         parameters['sort'] = 'FIRST_TO_START'
         parameters['maxResults'] = max_num_markets
-		const use_compression = true;
-		
+        const use_compression = true;
+        
         bfapi.listMarketCatalogue(login_response_params.session_id,
-								  config.ak,
-								  JSON.stringify(parameters),
-								  use_compression,
-								  parseListMarketCatResponse);
+                                  config.ak,
+                                  JSON.stringify(parameters),
+                                  use_compression,
+                                  parseListMarketCatResponse);
     }
     else
     {
@@ -72,14 +72,14 @@ function loginCallback(login_response_params)
 //============================================================
 function parseListMarketCatResponse(response_params)
 {
-	// Callback for when listMarketCatalogue response is received
-	// Input parameter response_params contains the following data:
-	//    1. response_params.error - a boolean error flag
-	//    2. response_params.error_message - string containing error details or "OK" when no error
-	//    3. response_params.data - string containing the JSON response
-	//    4. response_params.session_id - string storing session token value
-	
-	console.log("parseListMarketCatResponse() - callback executing.")
+    // Callback for when listMarketCatalogue response is received
+    // Input parameter response_params contains the following data:
+    //    1. response_params.error - a boolean error flag
+    //    2. response_params.error_message - string containing error details or "OK" when no error
+    //    3. response_params.data - string containing the JSON response
+    //    4. response_params.session_id - string storing session token value
+    
+    console.log("parseListMarketCatResponse() - callback executing.")
     if (response_params.error === false)
     {
         let response = {}
@@ -95,57 +95,57 @@ function parseListMarketCatResponse(response_params)
         }
         if (bfapi.validateAPIResponse(response))
         {
-			let result = response.result;
-			let market_array_length = result.length;
-			let todays_races = [];
-			let todays_races_with_runners = [];
-			for (let i = 0; i < market_array_length; i++)
-			{
-				let market = {};
-				market.id = result[i].marketId;
-				market.marketName = result[i].event.name + ' ' + result[i].marketName;
-				let starttime = new Date(result[i].marketStartTime);
-				let tm = '';
-				let vhour = starttime.getUTCHours();
-				if (vhour < 10)
-				{
-					tm += ('0' + vhour + ':');
-				}
-				else
-				{
-					tm += (vhour + ':');
-				}
-				let vmin = starttime.getUTCMinutes();
-				if (vmin < 10)
-				{
-					tm += ('0' + vmin);
-				}
-				else
-				{
-					tm += vmin;
-				}
-				market.startTime = tm
-				market.type = result[i].description.marketType;
-				market.numSelections = result[i].runners.length;
-				let market_string = (market.startTime + ' - ' + market.marketName + ', ID = ' + market.id);
-				todays_races.push(market_string);
-				todays_races_with_runners.push(market_string);
-				console.log(market_string);
-				for (let jk = 0; jk < market.numSelections; jk++)
-				{
-					let selection = {};
-					selection.id = result[i].runners[jk].selectionId;
-					selection.runnerName = result[i].runners[jk].runnerName;
-					let runner_string = ("\t" + selection.runnerName + ' = ' + selection.id);
-					todays_races_with_runners.push(runner_string);
-				}
-			}
-			for (let k = 0; k < todays_races_with_runners.length; ++k)
-			{
-				console.log(todays_races_with_runners[k]);
-			}
-		}
-	}
+            let result = response.result;
+            let market_array_length = result.length;
+            let todays_races = [];
+            let todays_races_with_runners = [];
+            for (let i = 0; i < market_array_length; i++)
+            {
+                let market = {};
+                market.id = result[i].marketId;
+                market.marketName = result[i].event.name + ' ' + result[i].marketName;
+                let starttime = new Date(result[i].marketStartTime);
+                let tm = '';
+                let vhour = starttime.getUTCHours();
+                if (vhour < 10)
+                {
+                    tm += ('0' + vhour + ':');
+                }
+                else
+                {
+                    tm += (vhour + ':');
+                }
+                let vmin = starttime.getUTCMinutes();
+                if (vmin < 10)
+                {
+                    tm += ('0' + vmin);
+                }
+                else
+                {
+                    tm += vmin;
+                }
+                market.startTime = tm
+                market.type = result[i].description.marketType;
+                market.numSelections = result[i].runners.length;
+                let market_string = (market.startTime + ' - ' + market.marketName + ', ID = ' + market.id);
+                todays_races.push(market_string);
+                todays_races_with_runners.push(market_string);
+                console.log(market_string);
+                for (let jk = 0; jk < market.numSelections; jk++)
+                {
+                    let selection = {};
+                    selection.id = result[i].runners[jk].selectionId;
+                    selection.runnerName = result[i].runners[jk].runnerName;
+                    let runner_string = ("\t" + selection.runnerName + ' = ' + selection.id);
+                    todays_races_with_runners.push(runner_string);
+                }
+            }
+            for (let k = 0; k < todays_races_with_runners.length; ++k)
+            {
+                console.log(todays_races_with_runners[k]);
+            }
+        }
+    }
     else
     {
         console.log(response_params.error_message);
