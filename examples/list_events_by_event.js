@@ -9,17 +9,24 @@
 // file - see login.hs for details) and request a list
 // of events for the required event ID.
 //------------------------------------------------------
+
+
 "use strict"
-const config = require('../config.js');
-var bfapi = require('../api_ng/betfairapi.js');
-var market_filters = require('../api_ng/market_filters.js');
-var event_id = 0;
-run();
+const config = require('../config.js')
+var bfapi = require('../api_ng/betfairapi.js')
+var market_filters = require('../api_ng/market_filters.js')
+var event_id = 0
+
+
+run()
+
+
 //============================================================
 function printCLIParamRequirements()
 {
     console.log("[1] - Event ID.");
 }
+
 //============================================================
 function run()
 {
@@ -34,6 +41,7 @@ function run()
     event_id = comm_params[0];
     bfapi.login(config,loginCallback);
 }
+
 //============================================================
 function loginCallback(login_response_params)
 {
@@ -64,6 +72,7 @@ function loginCallback(login_response_params)
         console.log(login_response_params.error_message);
     }
 }
+
 //============================================================
 function parseListEventsResponse(response_params)
 {
