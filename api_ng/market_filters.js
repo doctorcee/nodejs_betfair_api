@@ -10,9 +10,54 @@
 //------------------------------------------------------------------------
 
 const HORSE_RACING_EVENT_TYPE_ID = 7;
+const CRICKET_EVENT_TYPE_ID = 4;
 const GREYHOUND_EVENT_TYPE_ID = 4339;
 
 module.exports = {
+	
+	createMarketFilterObject: function (evtype_id_arr, evid_arr, country_arr, comp_ids, market_type_arr, start_time, end_time) {
+		// Create a MarketFilter instance with supplied characteristics
+		// Input parameters:
+        // 1. Array of event type IDs 
+        // 2. Array of event IDs
+        // 3. Array of country codes
+        // 4. Array of market types
+        // 5. Start time (Date object) OPTIONAL
+        // 6. End time (Date object)   OPTIONAL
+        
+        let market_filter = {}
+        if (evtype_id_arr.length > 0)
+        {
+			market_filter['eventTypeIds'] = evtype_id_arr
+		}
+		if (evid_arr.length > 0)
+        {
+			market_filter['eventIds'] = evid_arr
+		}
+		if (country_arr.length > 0)
+        {
+			market_filter['marketCountries'] = country_arr
+		}
+		if (comp_ids.length > 0)
+        {
+			market_filter['competitionIds'] = comp_ids
+		}
+		if (market_type_arr.length > 0)
+        {
+			market_filter['marketTypeCodes'] = market_type_arr
+		}
+		if (start_time !== undefined)
+		{
+			let date_range = {}
+			date_range['from'] = start_time.toJSON()
+			if (end_time !== undefined)
+			{
+				date_range['to'] = end_time.toJSON()
+			}
+			market_filter['marketStartTime'] = date_range
+		}
+		return market_filter
+	},
     
     createMarketFilter: function (evid_arr, country_arr, market_type_arr, start_time, end_time, market_proj_arr, max_results) {
         // Input parameters:
@@ -81,7 +126,7 @@ module.exports = {
         let filter = '{"filter":{' + filter_string;
         return filter;                
     },
-    
+   
     createListClearedOrdersFilter : function (year,month,day,event_type_id,strategy_ref_array,start_record,record_limit,side)
     {
 		// Month is supplied as a ZERO based integer so JANUARY == 0 etc.
