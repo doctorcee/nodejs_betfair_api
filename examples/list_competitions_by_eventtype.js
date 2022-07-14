@@ -9,17 +9,22 @@
 // file - see login.hs for details) and request a list
 // of competition ID for the required event type.
 //------------------------------------------------------
+
 "use strict"
-const config = require('../config.js');
-var bfapi = require('../api_ng/betfairapi.js');
-var market_filters = require('../api_ng/market_filters.js');
-var event_type_id = 0;
-run();
+
+const config = require('../config.js')
+var bfapi = require('../api_ng/betfairapi.js')
+var market_filters = require('../api_ng/market_filters.js')
+var event_type_id = 0
+
+run()
+
 //============================================================
 function printCLIParamRequirements()
 {
-	console.log("[1] - Event type ID.");
+	console.log("[1] - Event type ID.")
 }
+
 //============================================================
 function run()
 {
@@ -35,6 +40,7 @@ function run()
 	// Call the bfapi module login function with the login parameters stored in config
     bfapi.login(config,loginCallback);
 }
+
 //============================================================
 function loginCallback(login_response_params)
 {
@@ -49,10 +55,12 @@ function loginCallback(login_response_params)
         let countries = []
         let comps = []
         let mkt_types = []
+        
         const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)
         let parameters = {}
         parameters['filter'] = mkfilter
-		const use_compression = true;
+		const use_compression = true
+		
         bfapi.listCompetitions(login_response_params.session_id,
 							   config.ak,
 							   JSON.stringify(parameters),
@@ -61,9 +69,10 @@ function loginCallback(login_response_params)
     }
     else
     {
-        console.log(login_response_params.error_message);
+        console.log(login_response_params.error_message)
     }
 }
+
 //============================================================
 function parseListCompetitionsResponse(response_params)
 {
