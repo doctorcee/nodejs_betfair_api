@@ -1,13 +1,13 @@
 #!/usr/bin node
 //------------------------------------------------------
 // IMPORTANT - PLEASE READ THE LICENSE TERMS BEFORE 
-// USING THIS CODE
+// DECIDING IF YOU WANT TO USE THIS CODE
 //------------------------------------------------------
 // Description
 // Simple script that will log into your Betfair account
 // (using the login parameters stored in the config.js
 // file - see login.hs for details) and request a list 
-// of competition ID for the required event type.
+// of competition ID for the required event ID.
 //------------------------------------------------------
 
 "use strict"
@@ -15,14 +15,14 @@
 const config = require('../config.js');
 var bfapi = require('../api_ng/betfairapi.js');
 
-var event_type_id = 0;
+var event_id = 0;
 
 run();
 
 //============================================================ 
 function printCLIParamRequirements()
 {	
-	console.log("[1] - Event type ID.");			
+	console.log("[1] - Event ID.");			
 }
 
 //============================================================ 
@@ -36,9 +36,8 @@ function run()
 		printCLIParamRequirements();
 		process.exit(1);
 	}
-	event_type_id = comm_params[0];	
-	
-	// Call the bfapi module login function with the login parameters stored in config
+	event_id = comm_params[0];	
+		
     bfapi.login(config,loginCallback);
 }
 
@@ -47,16 +46,18 @@ function loginCallback(login_response_params)
 {
     // Login callback - will be called when bfapi.login receives a response
     // from the API or encounters an error
+    // Create the filter for listEvents operation
     if (login_response_params.error === false)
     {
+		//let filters = '{"filter":{"eventTypeIds":["1"],"marketBettingTypes":["ODDS"]}}';			
         console.log("Login successful!");        		        
-        const filter = '{"filter":{"eventTypeIds":["' + event_type_id + '"]}}';
+        const filter = '{"filter":{"eventIds":["' + event_id + '"]}}';
 		const use_compression = true;
-        bfapi.listCompetitions(login_response_params.session_id,
-							   config.ak,
-							   filter,
-							   use_compression,
-							   parseListCompetitionsResponse);
+        bfapi.listEvents(login_response_params.session_id,
+						 config.ak,
+						 filter,
+						 use_compression,
+						 parseListEventsResponse);
     }
     else
     {
@@ -65,9 +66,9 @@ function loginCallback(login_response_params)
 }
 
 //============================================================ 
-function parseListCompetitionsResponse(response_params)
+function parseListEventsResponse(response_params)
 {
-	// Callback for when listCompetitions response is received
+	// Callback for when listEvents response is received
     if (response_params.error === false)
     {   
         let response = {};
@@ -83,26 +84,26 @@ function parseListCompetitionsResponse(response_params)
         }
         if (bfapi.validateAPIResponse(response))
         {				
-			console.log("Available competitions for event type " + event_type_id + ":");							
-			let competitionlist = response.result;
-			if (competitionlist.length > 0)
+			console.log("Available events for event ID " + event_id + ":");							
+			let eventlist = response.result;
+			if (eventlist.length > 0)
 			{
-				let comp_array = [];
-				for (let comp of competitionlist)
+				let event_array = [];
+				for (let evt of eventlist)
 				{
-					let new_comp = {};
-					new_comp.Competition = comp.competition.name;
-					new_comp.Region = comp.competitionRegion;
-					new_comp.ID = parseInt(comp.competition.id);
-					new_comp.marketCount = comp.marketCount;
-					comp_array.push(new_comp);				
+					let new_event = {};								
+					new_event.Name = evt.event.name;
+					new_event.Country = evt.event.countryCode;
+					new_event.ID = parseInt(evt.event.id);
+					new_event.marketCount = evt.marketCount;
+					event_array.push(new_event);				
 				}
 				// Use console.table for nicer output
-				console.table(comp_array);	
+				console.table(event_array);	
 			}
 			else
 			{
-				console.log("There are no competitions for this event type.");
+				console.log("There are no events for this event type.");
 			}
 		}
 	}
@@ -111,4 +112,5 @@ function parseListCompetitionsResponse(response_params)
         console.log(response_params.error_message);
     }	
 }
+
 
