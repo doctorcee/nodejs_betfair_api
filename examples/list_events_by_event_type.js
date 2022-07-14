@@ -9,17 +9,23 @@
 // file - see login.hs for details) and request a list
 // of events for the required event type ID.
 //------------------------------------------------------
+
+
 "use strict"
 const config = require('../config.js');
 var bfapi = require('../api_ng/betfairapi.js');
 var market_filters = require('../api_ng/market_filters.js');
 var event_type_id = 0;
+
 run();
+
+
 //============================================================
 function printCLIParamRequirements()
 {
 	console.log("[1] - Event type ID.");
 }
+
 //============================================================
 function run()
 {
@@ -34,12 +40,13 @@ function run()
 	event_type_id = comm_params[0];
     bfapi.login(config,loginCallback);
 }
+
 //============================================================
 function loginCallback(login_response_params)
 {
     // Login callback - will be called when bfapi.login receives a response
     // from the API or encounters an error
-    // Create the filter for listEvents operation
+    
     if (login_response_params.error === false)
     {
         console.log("Login successful!");
@@ -49,10 +56,12 @@ function loginCallback(login_response_params)
         let countries = []
         let comps = []
         let mkt_types = [] // "marketBettingTypes":["ODDS"]
+        
         const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)
         let parameters = {}
         parameters['filter'] = mkfilter
 		const use_compression = true;
+		
         bfapi.listEvents(login_response_params.session_id,
 						 config.ak,
 						 JSON.stringify(parameters),
@@ -64,6 +73,7 @@ function loginCallback(login_response_params)
         console.log(login_response_params.error_message);
     }
 }
+
 //============================================================
 function parseListEventsResponse(response_params)
 {
