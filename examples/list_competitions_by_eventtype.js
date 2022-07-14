@@ -14,6 +14,7 @@
 
 const config = require('../config.js');
 var bfapi = require('../api_ng/betfairapi.js');
+var market_filters = require('../api_ng/market_filters.js');
 
 var event_type_id = 0;
 
@@ -49,14 +50,25 @@ function loginCallback(login_response_params)
     // from the API or encounters an error
     if (login_response_params.error === false)
     {
-        console.log("Login successful!");        		        
-        const filter = '{"filter":{"eventTypeIds":["' + event_type_id + '"]}}';
+        console.log("Login successful!");        		  
+        
+        // Create a market filter               
+        let evtypes = [event_type_id]
+        let evids = []
+        let countries = []
+        let comps = []
+        let mkt_types = []
+        
+        const mkfilter = market_filters.createMarketFilterObject(evtypes, evids, countries, comps, mkt_types)                       
+        
+        let parameters = {}
+        parameters['filter'] = mkfilter                       
 		const use_compression = true;
         bfapi.listCompetitions(login_response_params.session_id,
 							   config.ak,
-							   filter,
+							   JSON.stringify(parameters),
 							   use_compression,
-							   parseListCompetitionsResponse);
+							   parseListCompetitionsResponse)
     }
     else
     {
