@@ -21,7 +21,45 @@ module.exports = {
 		return then.diff(now, 'seconds');
 	},
 	
+	dateToStringYMD: function (date_object) {
+		// Input parameter:
+        // 		Javascript Date object
+        // Return value: 
+		// 		YYYYMMDD formatted string
+		
+		let date_string = ""
+		date_string += date_object.getUTCFullYear();
+		
+		let month = date_object.getUTCMonth() + 1;
+		if (month < 10)
+		{
+			date_string += ('0' + month);
+		}
+		else
+		{
+			date_string += month;
+		}
+		
+		let day = date_object.getUTCDate();	
+		if (day < 10)
+		{
+			date_string += ('0' + day);
+		}
+		else
+		{
+			date_string += day;
+		}
+		
+		
+		return date_string;
+	},
+	
 	timeStringUTC: function (date_object) {
+		// Input parameter:
+        // 		Javascript Date object
+        // Return value: 
+		// 		UTC based hh:mm formatted time string
+		
 		let time_string = '';
 		let hour = date_object.getUTCHours();
 		if (hour < 10)
@@ -45,6 +83,11 @@ module.exports = {
 	},
 	
 	todaysDateAsString: function () {
+		// Input parameter:
+        // 		none
+        // Return value: 
+		// 		YYYY-MM-DD formatted string for TODAY'S date
+		
 		let today = new Date();   
 		let year_string = today.getFullYear();
 		let month_string = today.getMonth() + 1;
