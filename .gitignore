@@ -1,4 +1,5 @@
 aws*
+nonlogin_config.js
 config.js
 stream_config.js
 *_old.js
